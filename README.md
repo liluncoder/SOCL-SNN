@@ -104,6 +104,13 @@ See research/papers/.
 | `tools/`       | Supporting utilities                                         |
 | `results/`     | Curated result summaries                                     |
 
+What is published, and what is deliberately withheld, is governed by
+[docs/DISCLOSURE.md](docs/DISCLOSURE.md). The short version: the evidence chain is published
+in full — preregistrations, decisions, key diagnostics, failure reasons — while raw work logs
+are not. A test decides which is which: can an outsider, from the public material alone,
+understand why the experiment was designed that way, judge whether the measurement is
+trustworthy, check that the intervention took effect, and reproduce the core result?
+
 ## Legacy Prototype
 
 Earlier development included a sequential prototype exploring:

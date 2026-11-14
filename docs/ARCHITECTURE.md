@@ -101,3 +101,8 @@ by a manifest in `records/manifests/` that records the configuration, seed set, 
 weight fingerprints, environment, size and checksum of the archive. `records/` and
 `results/` have separate roles and must not be merged: one is evidence, the other is a
 quotable summary.
+
+What is published and what is withheld is set out in `DISCLOSURE.md`: the evidence chain in
+full, raw work logs not at all, and one exception — a messy file that holds the only original
+evidence for a claim is preserved (hashed and located) rather than discarded for being
+untidy.

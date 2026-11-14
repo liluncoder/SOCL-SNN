@@ -3,6 +3,10 @@
 The evidence layer: what was preregistered, what was run, what was decided, and what went
 wrong. Everything in `experiments/` is setup; everything here is what actually happened.
 
+This is **layer 1** of the disclosure model in `docs/DISCLOSURE.md`: the audit trail that is
+published in full, so that a claim can be checked after the fact. It is not the raw work log
+— repeated dumps, scratch output and personal notes stay internal.
+
 Nothing in this directory is edited after the fact. A corrected reading is a new file that
 cites the old one.
 
@@ -58,6 +62,21 @@ With that, a reader can tell whether a number came from a run, reproduce it at t
 commit, and ask for the archive by hash. Without it, the number is a rumour.
 
 A blank copy is at `records/manifests/_template.yaml`.
+
+## Failure leaves a trace
+
+A round that did not pass is not omitted, and it is not dressed as a lesson. Its diagnostic
+(`records/diagnostics/`) answers five questions: what was tested, what was observed, why it
+did not pass, what it rules out, and what changed afterwards.
+
+The raw output of a failed round may be summarised. The **reasoning behind the failure may
+not** — that is the part a later reader can reuse. Template:
+`records/diagnostics/_template.md`.
+
+★ Two things this forbids:
+
+- publishing only the rounds that worked;
+- rewriting "criterion not reached" as something better.
 
 ## What is forbidden here
 
