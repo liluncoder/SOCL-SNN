@@ -1,7 +1,7 @@
 # Runtime dependencies for the code in this repository.
 #
-# The current pipeline (the five stages at the repository root, and the snapshot in
-# legacy/pipeline_v1/) needs only NumPy: no GPU, no deep-learning framework, no plotting
-# library. Do not add a plotting library as a module-level import anywhere in the chain —
-# importing stage 05 imports stage 01, so it would become a hard dependency of everything.
+# The archived pipeline (legacy/pipeline_v1/) needs only NumPy: no GPU, no deep-learning
+# framework, no plotting library. Do not add a plotting library as a module-level import
+# anywhere in the chain — importing stage 05 imports stage 01, so it would become a hard
+# dependency of everything.
 numpy>=1.24

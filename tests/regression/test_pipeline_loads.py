@@ -1,4 +1,4 @@
-"""Regression: every pipeline stage must load, at the root and in the legacy snapshot.
+"""Regression: every pipeline stage must load from the legacy snapshot.
 
 Loading a stage executes the whole upstream chain (the stages import each other by literal
 filename), so `--help` is a real integration test: if a filename, a relative path or the
@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+PIPELINE = ROOT / "legacy" / "pipeline_v1"
 
 STAGES = [
     "01_substrate.py",
@@ -51,26 +52,18 @@ def _check_dir(base: Path, label: str) -> list[str]:
     return failures
 
 
-def test_stages_load_from_root():
-    failures = _check_dir(ROOT, "root")
+def test_pipeline_loads():
+    """Every stage must load, running from the pipeline's own directory."""
+    assert PIPELINE.exists(), "missing pipeline directory: %s" % PIPELINE
+    failures = _check_dir(PIPELINE, "pipeline_v1")
     assert not failures, "stages failed to load:\n" + "\n".join(failures)
-
-
-def test_legacy_snapshot_loads():
-    """The snapshot must be runnable on its own — its loader resolves relative to the file."""
-    legacy = ROOT / "legacy" / "pipeline_v1"
-    if not legacy.exists():
-        return  # snapshot removed after migration; nothing to check
-    failures = _check_dir(legacy, "legacy")
-    assert not failures, "legacy stages failed to load:\n" + "\n".join(failures)
 
 
 def test_loader_module_present():
     """Stage 05 needs tools/_dms_run.py beside the pipeline it loads."""
-    for base in (ROOT, ROOT / "legacy" / "pipeline_v1"):
-        dms = base / "tools" / "_dms_run.py"
-        if base.exists() and (base / "05_prototype.py").exists():
-            assert dms.exists(), "missing loader: %s" % dms
+    dms = PIPELINE / "tools" / "_dms_run.py"
+    assert (PIPELINE / "05_prototype.py").exists(), "missing 05_prototype.py"
+    assert dms.exists(), "missing loader: %s" % dms
 
 
 if __name__ == "__main__":

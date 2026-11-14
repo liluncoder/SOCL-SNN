@@ -22,8 +22,9 @@ someone else instead of taken on trust.
 
 ## Note on `_dms_run.py`
 
-`tools/_dms_run.py` is not part of this group. It is the loader used by
-`05_prototype.py`, and it lives beside the pipeline it serves. See
+There is a second loader named `_dms_run.py` at `legacy/pipeline_v1/tools/_dms_run.py`. It is
+not part of this directory's group: `05_prototype.py` resolves it as
+`dirname(__file__)/tools/_dms_run.py`, so it has to live beside the pipeline it serves. See
 `legacy/pipeline_v1/README.md`.
 
 ## Rule

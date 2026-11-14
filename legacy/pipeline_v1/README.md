@@ -5,12 +5,11 @@ networks, working memory, memory-driven action, reward-modulated learning.
 
 **Status: historical snapshot.** These files are preserved as a research artifact. They are
 not the current gate structure, and their results are not evidence for any gate on the
-roadmap.
+roadmap. They are kept runnable because several gate decisions were made against this
+behaviour, and a baseline that cannot be re-run is not a baseline.
 
-> The same five files also exist at the repository root, which is the working copy used
-> while the migration is verified. Once the move is confirmed the root copies are removed
-> and this directory becomes the single home. Until then, if you edit one copy, edit both —
-> or neither.
+Run everything from this directory. Each stage resolves what it loads relative to its own
+file, so the folder works as a unit wherever the repository sits.
 
 ## The five stages
 
