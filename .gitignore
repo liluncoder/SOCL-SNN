@@ -9,6 +9,16 @@ slices/
 report/
 *.log
 
+# Large run data.
+# Git holds traceability, not raw output: a run's configuration, seeds, code version,
+# weight fingerprints and the checksum/location of its archive go in records/manifests/.
+# See records/README.md.
+*.npz
+*.npy
+*.h5
+results/**/*.json
+records/**/raw/
+
 # Editors
 .vscode/
 .idea/

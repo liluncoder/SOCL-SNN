@@ -1,117 +1,161 @@
+#
+
 # SOCL-SNN
 
-Self-organizing continual learning in spiking neural networks.
+**Self-Organizing Continual Learning in Spiking Neural Networks**
 
-> An independent research project investigating self-organizing continual learning in
-> spiking neural networks, with a focus on synaptic credit assignment, energy-constrained
-> neuronal dynamics, memory, and adaptive network structures. An ongoing experimental
-> prototype.
+SOCL-SNN is an independent research project investigating local learning, synaptic credit assignment, temporal information processing, and adaptive mechanisms in spiking neural networks.
 
-Everything here is exploratory. Nothing in this repository claims that cognition,
-general learning, or open-ended capability has been achieved.
+The project explores how neural systems can learn from experience through local mechanisms, maintain useful internal states, and potentially adapt their own computational structures over time.
 
-## Pipeline
+It is an ongoing experimental research project. It does not claim to have achieved general intelligence, human-like cognition, or open-ended autonomous learning.
 
-A single line of experiments. Each stage loads the previous one directly through
-`importlib`, so a stage always runs on the exact network the stage before it built —
-there is no duplicated model definition to drift out of sync.
+## Research Motivation
 
-| Stage | File | What it does |
-| --- | --- | --- |
-| 01 | `01_substrate.py` | Spiking E/I network with a per-unit energy budget. Conductance synapses, short-term depression, AdEx or LIF cells. Energy is charged per spike, per unit of upkeep, and per synapse. Structural development: unit division, death by energy deficit, pruning of unused synapses. Carries the pre-registered acceptance criteria. |
-| 02 | `02_working_memory.py` | Delay-period memory on top of the substrate. Slot pools A and B, injection units, hold/decay dynamics, winner-take-all between slots. Three arms: `two_pool`, `snap_off`, `sham_B`. |
-| 03 | `03_memory_driven_action.py` | Readout from memory into an action pool. Three arms: `memory`, `no_slot`, `freeze_off`. |
-| 04 | `04_task_environment.py` | Closed-loop task with reward-modulated plasticity — the credit-assignment stage. Five arms — `task_off`, `local`, `global_scalar`, `global_center`, `reward_zero` — to test whether the locality of the modulatory signal matters. |
-| 05 | `05_prototype.py` | Prototype on top of the task stage: an internally generated modulatory drive, a feedback projection, and a target sequence, scored against trivial predictors. Runs through `tools/_dms_run.py`. |
+Most conventional neural network experiments focus on learning a task under a fixed architecture and training procedure.
 
-## What `--criteria` reports
+This project investigates a different set of questions:
 
-Stage 01 can print five structural quantities, each for three arms (everything on;
-plasticity off; normalisation off):
+- What information can local learning mechanisms actually represent and transmit?
 
-1. peak separation of the long-range weight distribution
-2. relative change of the mean long-range weight
-3. modularity Q
-4. ratio of mean long-range edge distance to its initial value
-5. near-minus-far firing-rate gap
+- How does credit assignment affect synaptic updates and observable behavior?
 
-```bash
-python 01_substrate.py --criteria --seed 7
-```
+- How can temporal and spatial information be integrated?
 
-The thresholds that appear next to those numbers are constants in the source, and the
-tally applies a "≥2 of 4 counts as a pass" convention. Both are conventions of this code,
-not statistics — [`operations/02_experiments.md`](operations/02_experiments.md) describes
-what to do instead.
+- Can learning remain effective across successive experiences?
 
-★ Two things to check before reading the output. Criterion 1 is printed **twice**, raw
-and rescaled by the model's weight ceiling, because the raw threshold is in absolute
-weight units. Criterion 3 returns `nan` whenever the binarised correlation graph has too
-few edges, which is a sparsity limit of your `--units`, not an absence of structure.
+- Under what conditions can network structure adapt without destabilizing learning?
 
-The same script provides the controls used against it: `--nodev` (no birth/death) and
-`--no-prune` (no synaptic pruning).
+These questions are investigated through mathematical analysis and controlled computational experiments.
 
-## Requirements
+## Current Research
 
-- Python 3.9 or newer
-- NumPy
-- No GPU, no deep-learning framework
+The research is organized into a staged roadmap:
 
-## Running
+| Stage  | Research focus                                         | Status      |
+| ------ | ------------------------------------------------------ | ----------- |
+| Gate 0 | Establish a task with sufficient experimental headroom | Active      |
+| Gate 1 | Temporal and spatial integration                       | Planned     |
+| Gate 2 | Longitudinal measurement of learning improvement       | Not started |
+| Gate 3 | Cross-task integration and consolidation               | Not started |
+| Gate 4 | Synaptic and connection-level plasticity               | Frozen      |
+| Gate 5 | Structural self-organization                           | Frozen      |
+| Gate 6 | Self-modeling and higher-level integration             | Conceptual  |
 
-Stages 01–05 run from a fresh clone. Paths are resolved relative to each file, so the
-working directory does not matter.
+The roadmap describes research prerequisites and intended investigations, not completed capabilities.
 
-```bash
-python 01_substrate.py --criteria --seed 7
-python 02_working_memory.py --smoke
-python 03_memory_driven_action.py --smoke
-python 04_task_environment.py --smoke
-python 05_prototype.py --rounds 12          # add --mod-dim for the modulation path
-```
+See docs/RESEARCH_ROADMAP.md.
 
-Stage 04 runs from the command line only in its interface and calibration modes: the
-five experimental arms exist in `build(..., arm=...)` but every CLI call site hard-codes
-`arm='task_off'`. How to drive the other arms is in
-[`operations/04_extend.md`](operations/04_extend.md) §3.
+## Experimental Methodology
 
-## Documentation
+Experiments follow a preregistered decision process.
 
-[`operations/`](operations/) is the manual for using this code: how to run each stage and
-what it prints ([`01_usage.md`](operations/01_usage.md)), how to design and register your
-own runs ([`02_experiments.md`](operations/02_experiments.md)), the code-level
-constraints that will silently ruin a measurement ([`03_traps.md`](operations/03_traps.md)),
-and how to add a stage or an arm ([`04_extend.md`](operations/04_extend.md)). A blank
-pre-registration form is in
-[`operations/templates/`](operations/templates/pre-registration.md).
+The central principle is:
 
-Every stage has `--help`. Stages 02 and 03 offer `--smoke` for a fast check that the
-mechanism is not immediately broken; 01 offers `--nodev` and `--no-prune` as controls;
-04 offers `--calib-task`, `--calib-p8` and `--choice-mode`.
+**Define the decision criteria before running an experiment, validate the measurement process, and append the resulting decision without rewriting the original criteria.**
 
-Runs write to `slices/` and `report/`; both are git-ignored. The state slices are large
-and are not tracked.
+The methodology includes:
 
-## Caveats
+1. Explicit hypotheses and experimental conditions.
 
-- **`tools/_dms_run.py` is a compatibility layer, not a batch driver.** Stage 05 loads it
-  for the task module and a weight fingerprint; the file here provides exactly that
-  surface and nothing else. Model behaviour is unchanged — verified by identical weight
-  fingerprints at a fixed seed against the original tree. There is no batch tooling here;
-  write your own driver on `build()` / `run_proto()`.
-- **Stage 04 exposes one arm on the command line.** All five arms exist in
-  `build(..., arm=...)`; the CLI hard-codes `task_off`, so anything printed by it is a
-  baseline, not a learning result.
-- **Chinese comments and console output are original.** The code was written with
-  Chinese inline commentary and Chinese console output, and that has been left intact
-  rather than translated. Filenames and interface text are English.
-- **Not packaged.** This is a research tree, not a library: no installable module, no
-  tests, no stable API.
+2. Predefined measurements, thresholds, sample sizes, and minimum detectable effects.
 
-## Status
+3. Instrument validation and deliberate failure tests.
 
-Work in progress. This repository publishes the code and the method, not the results —
-the experiment archive stays private. Several arms (`task_off`, `reward_zero`, `sham_B`,
-`no_slot`) are controls rather than conditions of interest: they exist so that a
-mechanism can be separated from everything else that is also switched on.
+4. Verification that interventions actually affect the system.
+
+5. One experimental variable changed at a time.
+
+6. Paired, seed-level comparisons.
+
+7. Four distinct outcomes: difference, equivalence, undecided, and void.
+
+8. Append-only experimental records and explicit applicability conditions.
+
+A failed instrument or invalid experimental setup is not interpreted as evidence for or against a mechanism.
+
+See protocols/ for the detailed methodology.
+
+## Research Findings and Publications
+
+The project also investigates theoretical limits of learning mechanisms.
+
+Current research outputs include:
+
+- **Candidate 1:** Analysis of the representational limits of low-dimensional global modulatory credit assignment.
+
+- **Candidate 2:** Investigation of sign reversals and edge-level synaptic update decomposition.
+
+These are research manuscripts and candidate research directions. Their claims should be interpreted according to the evidence and limitations stated in the corresponding documents.
+
+See research/papers/.
+
+## Repository Organization
+
+| Directory      | Purpose                                                      |
+| -------------- | ------------------------------------------------------------ |
+| `docs/`        | Research goals, roadmap, principles, and long-term vision    |
+| `protocols/`   | Preregistration, measurement, validation, and decision rules |
+| `research/`    | Theoretical analysis and manuscripts                         |
+| `experiments/` | Experiment implementations organized by research stage       |
+| `records/`     | Preregistrations, manifests, diagnostics, and decisions      |
+| `legacy/`      | Earlier experimental prototypes preserved for reference      |
+| `tests/`       | Instrument, unit, and regression tests                       |
+| `tools/`       | Supporting utilities                                         |
+| `results/`     | Curated result summaries                                     |
+
+## Legacy Prototype
+
+Earlier development included a sequential prototype exploring:
+
+- Energy-constrained spiking networks
+
+- Working memory
+
+- Memory-driven action
+
+- Reward-modulated learning
+
+- Adaptive network structures
+
+These earlier experiments are preserved as historical research artifacts. They should not be confused with the current Gate-based research roadmap.
+
+## Long-Term Vision
+
+The long-term motivation is to investigate persistent adaptive computational systems that can perceive, maintain internal models, remember experience, act, and modify their own learning mechanisms.
+
+PAA (Persistent Adaptive Agent) is a conceptual research direction for organizing these capabilities.
+
+SNNs are the current research substrate, not an assumption that spiking neural networks alone are sufficient for general intelligence. Alternative or hybrid computational substrates may be considered as evidence develops.
+
+PAA is a research vision, not an implemented or validated AGI architecture.
+
+See docs/VISION_PAA.md.
+
+## Research Principles
+
+- Mathematical definitions before biological analogies.
+
+- Falsifiable hypotheses before experiments.
+
+- Measurement validation before interpretation.
+
+- Preregistered criteria before execution.
+
+- Reproducibility before performance claims.
+
+- Explicit distinction between negative, undecided, and invalid results.
+
+- Historical records are preserved rather than silently rewritten.
+
+## Reproducibility
+
+Each experiment should document its configuration, random seeds, code version, measurement definitions, instrument checks, analysis procedure, and final decision.
+
+See individual experiment records for the exact conditions under which a result was obtained.
+
+## Scope
+
+SOCL-SNN is an independent, evolving research project. Its current scope is deliberately limited by experimental evidence, implementation maturity, and available computational resources.
+
+The immediate objective is not to claim general intelligence, but to establish reliable and increasingly capable mechanisms through controlled, reproducible research.

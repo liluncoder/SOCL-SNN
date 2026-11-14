@@ -1,0 +1,48 @@
+# Metadata only. This project is **not** packaged yet, and nothing here makes it
+# installable in a meaningful sense — it exists so that tooling can read the name,
+# description and licence, and so that the intent is recorded.
+#
+# Packaging becomes real when a mechanism has been reused by more than one experiment and
+# its interface has stopped moving. At that point a src/ layout and a real package list
+# are added. See docs/ARCHITECTURE.md, "Why there is no src/socl_snn/ yet".
+#
+# Deliberately absent: [tool.setuptools.packages.find], console scripts, build targets.
+# `py-modules = []` below keeps auto-discovery from collecting the experiment scripts.
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "socl-snn"
+version = "0.0.0"
+description = "Self-organizing continual learning in spiking neural networks — an independent research project (work in progress)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [{ name = "Lun Li" }]
+keywords = [
+    "spiking-neural-networks",
+    "continual-learning",
+    "credit-assignment",
+    "synaptic-plasticity",
+    "computational-neuroscience",
+]
+dependencies = ["numpy>=1.24"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Intended Audience :: Science/Research",
+]
+
+[tool.setuptools]
+py-modules = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Simulation-heavy instrument tests are opt-in; the default run must stay fast enough to
+# actually be run. See tests/README.md.
+addopts = "-q"
+markers = [
+    "slow: takes minutes; run explicitly with -m slow",
+]

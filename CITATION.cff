@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you refer to this project, please cite it using the metadata below."
+title: "SOCL-SNN: Self-Organizing Continual Learning in Spiking Neural Networks"
+type: software
+authors:
+  - family-names: "Li"
+    given-names: "Lun"
+    alias: "liluncoder"
+    email: "2381067480@qq.com"
+abstract: >-
+  An independent research project investigating local learning, synaptic credit
+  assignment, temporal information processing, and adaptive mechanisms in spiking neural
+  networks. The project studies what a local learning mechanism can represent and carry,
+  whether its intervention reaches the weights, and under what conditions network
+  structure can adapt without destabilising learning. It is an ongoing experimental
+  research project and does not claim general intelligence or open-ended autonomous
+  learning.
+repository-code: "https://github.com/liluncoder/SOCL-SNN"
+url: "https://github.com/liluncoder/SOCL-SNN"
+license: MIT
+keywords:
+  - spiking neural networks
+  - continual learning
+  - credit assignment
+  - synaptic plasticity
+  - computational neuroscience
+  - self-organization
