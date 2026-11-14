@@ -161,13 +161,50 @@ wrong.
 
 ---
 
-## 11. Stage 05 needs a module that is not here
+## 11. Stage 05's `tools/_dms_run.py` is a compatibility layer, not the original driver
 
-`05_prototype.py:11` loads `tools/_dms_run.py` and subclasses `M.TaskNet` from it. The
-file is not published, so the stage exits with an explanation. Everything before that
-line is readable, and `build_proto()` (`:356`) shows the intended call surface — but the
-dynamics live in the missing base, so reading the stage file alone will not tell you what
-the network does.
+`05_prototype.py` loads `tools/_dms_run.py` and takes `M`, `M.TaskNet`, `M.build`,
+`M.R_STAR0` and `md5_of` from it. In the original working tree that file was a ~2700-line
+batch driver — sharding, per-round cell dumps, collectors — with output paths inside that
+tree. None of it touched the model: the model-facing part was a `load()` of the task
+module plus one hash function.
 
-See [`01_usage.md`](01_usage.md) → 05_prototype.py for the intended call surface, and
-[`04_extend.md`](04_extend.md) §6(b) for the two honest ways to get the base back.
+The file here reproduces exactly that surface against `04_task_environment.py`, so the
+model behaviour is unchanged (verified: identical weight fingerprint at a fixed seed) and
+about 2650 lines of batch orchestration are gone. Two consequences:
+
+- **There is no batch tooling available.** No shards, no collectors, no statistics
+  scripts. Write your own driver on top of `M.build()` and `run_proto()`.
+- **Do not bulk up this file.** It is small on purpose, so it can be audited against the
+  task module it loads. Anything added to it becomes private API that others have to
+  read.
+
+Also: the private tree's stage-01 file imports `matplotlib` at module level; the copy in
+this repository has the plotting code removed, so the whole chain runs on NumPy alone.
+Do not reintroduce a plotting import at module level — it would become a hard dependency
+of every stage, because importing `05` imports `01`.
+
+---
+
+## 12. Fields that are zero by construction, not by failure
+
+Stage 05 logs the reward and injection readings only when the modulation path is enabled
+(`05_prototype.py:216`):
+
+```python
+if self.p_mod_dim and self.p_Wfb is not None:
+    ...                                   # computes p_R, inj_snap, inj_amp
+else:
+    self.p_R = np.zeros(self.p_nmod)      # everything downstream reads 0
+    med, sc, _inj_amp = float("nan"), float("nan"), 0.0
+    self.p_inj_snap = 0.0
+```
+
+So without `--mod-dim`, `wfb_rank`, `R_absmax`, `R_absmean`, `inj_iqr_med`,
+`inj_amp_med`, `sc_med` and `rho_ratio_med` are **0 or `NaN` no matter how long you run**.
+A `NaN` there is a flag you did not pass, not a broken measurement. The error and gain
+fields (`mae`, `gain`, `nz_*`) are valid in both modes.
+
+This generalises: before interpreting a zero or a `NaN`, find the branch that produced
+it. Several of the arithmetic-looking absences in this codebase are literal constants
+assigned on an `else` path.

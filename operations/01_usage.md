@@ -8,11 +8,12 @@ and whether it runs from a clean checkout.
 | 01 substrate | yes | self-contained |
 | 02 working memory | yes | |
 | 03 memory → action | yes | |
-| 04 task | interface only | the five arms are in `build()`, but the CLI hard-codes `task_off` |
-| 05 prototype | no | needs `tools/_dms_run.py`, which is not published |
+| 04 task | yes, but the CLI exposes one arm | the five arms are in `build()`; the command line hard-codes `task_off` |
+| 05 prototype | yes | needs `tools/_dms_run.py`, which ships here as a small compatibility layer |
 
 Cost rule of thumb at default sizes: one simulated second costs 3–4 s of wall clock. A
-30 s simulation is ~2 min; a 3-arm criteria sweep at 30 s is ~5–6 min.
+30 s simulation is ~2 min; a 3-arm criteria sweep at 30 s is ~5–6 min. Stage 05 costs
+about 1 s per 200 ms round, so its default 320-round run is ~5–8 min.
 
 ---
 
@@ -196,21 +197,64 @@ whatever you decide to read: `net.acc_probe()` returns `(accuracy, n)`.
 
 ## 05_prototype.py
 
-**What it computes.** A prototype layer on top of the task: a modulatory drive, a
-feedback projection, and a target sequence, with the readout driven by a separate
-framework base class.
+**What it computes.** A prototype layer on top of the task stage: an internally generated
+modulatory drive is compared against the drive the task actually delivers, so the question
+is whether the network's own modulation predicts the target better than a trivial
+predictor does. The stage runs `ProtoNet` on top of `TaskNet` and writes one result record
+per run.
 
-**Status.** It loads `tools/_dms_run.py` at `:11` and subclasses `M.TaskNet` from it.
-That module is part of the author's private working tree and is **not published**. The
-script detects this and exits with an explanation rather than a traceback.
+**How it chains.** `05_prototype.py:11` loads `tools/_dms_run.py`, which in turn loads
+`04_task_environment.py` and hands back the module as `M`. `ProtoNet` subclasses
+`M.TaskNet`, so the network, the rounds and the scoring all come from stage 04; the
+prototype only adds its own modulation layer. `tools/_dms_run.py` in this repository is a
+small compatibility layer — see its header for what the original file was.
 
-**Structure, if you want to rebuild the base.** `class ProtoNet(Base)` (`:39`), with
-`p_init()` taking the prototype's own knobs: `n_mod=25` modules, `amp=10`, `n_hot=8`,
-`stim_ms=70`, `norm_scale=90`, `rho=0.85`, `sigma=0.15`, `alpha=0.5`, `beta=0.05`, plus
-switches for feedback projection, modulation dimension, feedback mode, injection mode
-and probe routing.
+**Run it.**
 
-★ Build your driver on `build_proto(...)` rather than on `ProtoNet` directly: the
-constructor signature is the stable surface, and the base class is what you would have
-to reimplement. See [03_traps.md](03_traps.md) §5 for a parameter that silently never
-reached the venue.
+```bash
+python 05_prototype.py -h
+python 05_prototype.py --seed 411 --rounds 320            # default length
+python 05_prototype.py --seed 411 --rounds 12             # quick: does it run at all?
+python 05_prototype.py --seed 411 --rounds 320 --mod-dim  # + modulation dimension and feedback
+python 05_prototype.py --mod-dim --outdir out/proto       # write the result JSON
+```
+
+One round is 200 ms. Measured cost on the development machine: 12 rounds ≈ 13 s, 320
+rounds ≈ 9 min. Start with `--rounds 12`.
+
+★ **`--mod-dim` is what turns the modulation path on.** Without it, `p_R` stays zero and
+`wfb_*`, `R_abs*`, `inj_*`, `sc_med` and `rho_ratio_med` are all 0 or `NaN` **by
+construction**, not by failure — the code sets them that way when `p_mod_dim` is false
+(`05_prototype.py:216`). If you see `NaN` there, check this flag before debugging.
+
+`--dms N` is a task-side passthrough (delay in rounds) into `build()`; leave it at 0 unless
+you are working in the delayed-match mode.
+
+**Output.** A JSON record on stdout, and — with `--outdir` — a file named
+`<tag>_s<seed>_md<n>.json`:
+
+| Field | Meaning |
+| --- | --- |
+| `mae` | mean absolute error between the prototype's modulation and the target |
+| `mae_const`, `mae_ar` | the same error for two baselines: a constant predictor, and an AR(1) predictor with `rho` |
+| `gain`, `gain_ar` | improvement over those baselines (`mae_const − mae`, `mae_ar − mae`) |
+| `mae_norm` | `mae / mae_const` — the error as a fraction of the constant baseline |
+| `nz_med`, `nz_min`, `nz_max` | number of active modules per round |
+| `y_mean`, `y_cv` | mean and coefficient of variation of the modulation signal |
+| `tgt_mean`, `amp_mean` | mean target amplitude |
+| `w_md5` | weight-vector fingerprint — two runs differ iff this differs |
+| `n_rounds`, `wall` | rounds actually run, wall clock |
+| `wfb_rank`, `wfb_fro2` | rank and squared Frobenius norm of the feedback projection |
+| `eng_scale_scope`, `p_inj`, `p_Rmode`, `p_flip_s`, `r_star` | the condition the run was made under |
+
+★ Read `gain` against `mae_const` and `mae_ar`, not on its own — a small `mae` means
+nothing if the AR baseline is equally small. With 12 rounds you already get a complete
+record; the default 320 is for runs you intend to quote.
+
+**Knobs.** `p_init()` on `ProtoNet` takes the prototype's own parameters: `n_mod=25`
+modules, `amp=10`, `n_hot=8`, `stim_ms=70`, `norm_scale=90`, `rho=0.85`, `sigma=0.15`,
+`alpha=0.5`, `beta=0.05`, plus switches for feedback projection, modulation dimension,
+feedback mode, injection mode and probe routing. Build through `build_proto()` (`:356`),
+which passes the task-side keywords through to `M.build()`; that signature is the stable
+surface.
+

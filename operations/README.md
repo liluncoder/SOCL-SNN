@@ -30,7 +30,7 @@ Five stages, each one a single file, each one adding one mechanism on top of the
   └ 02_working_memory.py   + slot pools, injection, hold/decay, winner-take-all
       └ 03_memory_driven_action.py   + action groups, frozen readout pathway
           └ 04_task_environment.py   + stimulus rounds, reward write, probe scoring
-              └ 05_prototype.py      + modulatory drive, feedback (needs an unpublished base)
+              └ 05_prototype.py      + modulatory drive, feedback (via tools/_dms_run.py)
 ```
 
 Stages are chained by **filename**, not by an installed package: each file loads its

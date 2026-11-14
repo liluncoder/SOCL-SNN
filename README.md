@@ -22,7 +22,7 @@ there is no duplicated model definition to drift out of sync.
 | 02 | `02_working_memory.py` | Delay-period memory on top of the substrate. Slot pools A and B, injection units, hold/decay dynamics, winner-take-all between slots. Three arms: `two_pool`, `snap_off`, `sham_B`. |
 | 03 | `03_memory_driven_action.py` | Readout from memory into an action pool. Three arms: `memory`, `no_slot`, `freeze_off`. |
 | 04 | `04_task_environment.py` | Closed-loop task with reward-modulated plasticity — the credit-assignment stage. Five arms — `task_off`, `local`, `global_scalar`, `global_center`, `reward_zero` — to test whether the locality of the modulatory signal matters. |
-| 05 | `05_prototype.py` | Prototype: modulatory drive, feedback projection, target sequences. **Archived, not runnable** — see *Caveats*. |
+| 05 | `05_prototype.py` | Prototype on top of the task stage: an internally generated modulatory drive, a feedback projection, and a target sequence, scored against trivial predictors. Runs through `tools/_dms_run.py`. |
 
 ## What `--criteria` reports
 
@@ -60,7 +60,7 @@ The same script provides the controls used against it: `--nodev` (no birth/death
 
 ## Running
 
-Stages 01–03 run from a fresh clone. Paths are resolved relative to each file, so the
+Stages 01–05 run from a fresh clone. Paths are resolved relative to each file, so the
 working directory does not matter.
 
 ```bash
@@ -68,6 +68,7 @@ python 01_substrate.py --criteria --seed 7
 python 02_working_memory.py --smoke
 python 03_memory_driven_action.py --smoke
 python 04_task_environment.py --smoke
+python 05_prototype.py --rounds 12          # add --mod-dim for the modulation path
 ```
 
 Stage 04 runs from the command line only in its interface and calibration modes: the
@@ -94,11 +95,14 @@ and are not tracked.
 
 ## Caveats
 
-- **`05_prototype.py` cannot run here.** It imports `tools/_dms_run.py`, a framework
-  module that belongs to the private working tree and is not published. The stage is
-  included because it shows the direction the project was heading; it exits with an
-  explanation instead of a stack trace. Stages 01–03 are self-contained; stage 04 has
-  all five arms in code but exposes only `task_off` on the command line.
+- **`tools/_dms_run.py` is a compatibility layer, not a batch driver.** Stage 05 loads it
+  for the task module and a weight fingerprint; the file here provides exactly that
+  surface and nothing else. Model behaviour is unchanged — verified by identical weight
+  fingerprints at a fixed seed against the original tree. There is no batch tooling here;
+  write your own driver on `build()` / `run_proto()`.
+- **Stage 04 exposes one arm on the command line.** All five arms exist in
+  `build(..., arm=...)`; the CLI hard-codes `task_off`, so anything printed by it is a
+  baseline, not a learning result.
 - **Chinese comments and console output are original.** The code was written with
   Chinese inline commentary and Chinese console output, and that has been left intact
   rather than translated. Filenames and interface text are English.

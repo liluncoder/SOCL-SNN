@@ -11,9 +11,9 @@ _ROOT = os.path.dirname(os.path.abspath(__file__))
 _DMS = os.path.join(_ROOT, "tools", "_dms_run.py")
 if not os.path.exists(_DMS):
     sys.exit(
-        "05_prototype.py needs tools/_dms_run.py, which is part of the private "
-        "working tree and is not published in this repository.\n"
-        "This stage is archived for reference only and does not run from a fresh clone."
+        "05_prototype.py expects tools/_dms_run.py next to this file.\n"
+        "It ships with the repository; if it is missing, restore it from git:\n"
+        "    git checkout -- tools/_dms_run.py"
     )
 _spec = importlib.util.spec_from_file_location("dms", _DMS)
 dms = importlib.util.module_from_spec(_spec)
@@ -466,12 +466,29 @@ def run_proto(seed=411, rounds=320, outdir=None, tag="P", **kw):
     return out
 
 if __name__ == "__main__":
+    import argparse
     import json
+
+    ap = argparse.ArgumentParser(
+        description="05_prototype — prototype venue built on the task stage")
+    ap.add_argument("--seed", type=int, default=411)
+    ap.add_argument("--rounds", type=int, default=320,
+                    help="rounds to run; one round is %d ms" % int(200))
+    ap.add_argument("--mod-dim", "--mod_dim", dest="mod_dim", action="store_true",
+                    help="enable the modulation dimension and the feedback projection")
+    ap.add_argument("--dms", type=int, default=0,
+                    help="delayed-match delay in rounds (0 = off; >0 populates the "
+                         "injection fields of the output)")
+    ap.add_argument("--outdir", default=None, help="write the result JSON into this directory")
+    ap.add_argument("--tag", default="P", help="filename prefix for --outdir")
+    a = ap.parse_args()
+
     kw = {}
-    if "--mod_dim" in sys.argv:
+    if a.mod_dim:
         kw["mod_dim"] = True
         kw["fb_proj"] = True
-    R = int(sys.argv[sys.argv.index("--rounds") + 1]) if "--rounds" in sys.argv else 320
-    S = int(sys.argv[sys.argv.index("--seed") + 1]) if "--seed" in sys.argv else 411
-    o = run_proto(seed=S, rounds=R, **kw)
+    if a.dms:
+        kw["dms"] = int(a.dms)
+
+    o = run_proto(seed=a.seed, rounds=a.rounds, outdir=a.outdir, tag=a.tag, **kw)
     print(json.dumps(o, ensure_ascii=False, indent=1))

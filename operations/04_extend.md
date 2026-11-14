@@ -158,10 +158,12 @@ report: per-seed Δ, sign count, mean, SD of Δ, mean/SD, MDES
 
 Parsing the printed summary is fine; do not re-derive statistics from screenshots.
 
-**b) `tools/_dms_run.py`.** Required by stage 05, not published (2687 lines in the
-private tree). Two honest routes: ask the author for the file and drop it in `tools/`
-with that exact name, or reimplement the `TaskNet` surface that `ProtoNet` overrides —
-which means rebuilding the venue, and the numbers will not match anything.
+**b) Batch tooling for stage 05.** `tools/_dms_run.py` is a compatibility layer that
+provides the model-facing surface (`M`, `md5_of`) and nothing else; the original 2700-line
+driver that sharded runs and collected cells is not part of this repository. If you want
+batch behaviour, write it as your own script beside the stage, importing
+`build_proto` / `run_proto` from `05_prototype.py`, and keep `tools/_dms_run.py` small so
+it stays auditable.
 
 **c) A per-subset weight report.** Net change over the whole weight vector and net change
 over the subset a mechanism can actually reach are different numbers with different
