@@ -1,60 +1,109 @@
-# MIGRATION.md — artifacts that must be moved verbatim
+# MIGRATION.md — the historical evidence chain
 
-> Temporary file. Delete it once the items below are in place.
+> **Keep this file until all eight items are in place.** It is the checklist for migrating
+> the research record, not a description of the repository layout. When the last item is
+> verified, replace this file with a one-paragraph note (or delete it) — and keep the
+> migration commit in the history, so the move itself stays traceable.
 
-This repository was restructured to a research-workflow layout. The documents and records in
-the table below are **not** part of that restructure: they are historical material that has
-to be copied across **unchanged**. Nothing in the current tree reproduces, summarises or
-paraphrases them, and that is deliberate — this restructure was designed from the public
-repository plus the research description, not from a file-by-file review of the private
-archive.
+## The rule
 
-## Rule
+> **Migration is not summarisation.**
 
-> Research direction may be updated. Old verdicts may not be overwritten.
+These eight items are the evidence chain of the project. Their value is that they say what
+was believed at a given time, with the criterion that was actually used. A summary destroys
+exactly that: it is written by someone who already knows how the story ended.
 
-Concretely, for every row: copy the original file, keep its wording, keep its thresholds and
-dates, and do not merge several records into one summary. If a later plan contradicts one of
-them, the record stays where it is and the contradiction is appended beside it.
+Therefore, for every item:
 
-## Items
+- keep the **original wording**, including hedges, self-criticism and typographical habits;
+- keep the **date**, the **version** (e.g. `v2`), and the **applicability conditions**;
+- keep the **verdict state** — a frozen decision stays frozen, a negative stays negative;
+- do not merge several records into one narrative;
+- do not "fix" an old inconsistency. If it conflicts with a later plan, the record stays and
+  the conflict is noted beside it, not inside it.
 
-| # | Artifact | Target path | State |
-| --- | --- | --- | --- |
-| 1 | NORTH_STAR v2 — original wording | `docs/NORTH_STAR.md` (replaces the placeholder section "Canon version") | **pending** |
-| 2 | Gate 0–6 — original pass conditions and status | `experiments/gate<N>/STATUS.md` (replace the "Launching conditions: not yet written" text) | **pending** |
-| 3 | `r72`, `r78`, `r79`, `r80` — failure and diagnostic records | `records/diagnostics/` | **pending** |
-| 4 | `E2=甲` freeze decision | `records/decisions/` + referenced from `experiments/gate4/STATUS.md` | **pending** |
-| 5 | Stage-3 launch-condition decision history | `records/decisions/` | **pending** |
-| 6 | Candidate 1 — original theory draft | `research/papers/candidate1/` | **pending** |
-| 7 | Candidate 2 — experimental basis | `research/papers/candidate2/` | **pending** |
-| 8 | Per-round configuration, logs and weight fingerprints | `records/manifests/` (manifest + pointer to the archive) | **pending** |
+A summary is allowed **in addition**, in `results/summaries/` or as a section that clearly
+cites the original. It is never a substitute, and it never overwrites.
 
-## What is *not* pending
+## The eight items
 
-The following were written for this restructure and are not migrations. They may be edited
-freely, and they carry no historical authority:
+| # | Item | Target | Preserve especially | State |
+| --- | --- | --- | --- | --- |
+| 1 | NORTH_STAR v2 — original text | `docs/NORTH_STAR.md` (replaces the placeholder section "Canon version") | version marker, original wording | **pending** |
+| 2 | Gate 0–6 — original pass conditions and status | `docs/RESEARCH_ROADMAP.md` (the per-gate `STATUS.md` files then *point* to it rather than restating it) | thresholds, dates, frozen/active status | **pending** |
+| 3 | `r72`, `r78`, `r79`, `r80` — failure and diagnostic records | `records/diagnostics/` | separate files, round IDs, the exact defect diagnosis | **pending** |
+| 4 | `E2=甲` freeze decision | `records/decisions/` (+ a pointer from `experiments/gate4/STATUS.md`) | the decision, its reason, its date | **pending** |
+| 5 | Stage-3 launch-condition decision history | `records/decisions/` | every revision, in order, none dropped | **pending** |
+| 6 | Candidate 1 — original theory draft | `research/papers/candidate1/` | full draft, not an abstract | **pending** |
+| 7 | Candidate 2 — experimental basis | `research/papers/candidate2/` | the evidence it rests on, cited by round ID | **pending** |
+| 8 | Per-round configuration, logs, weight fingerprints | `records/manifests/` | config + seeds + fingerprints + archive checksum | **pending** |
 
-- `docs/RESEARCH_OVERVIEW.md`, `docs/RESEARCH_ROADMAP.md`, `docs/RESEARCH_PRINCIPLES.md`,
-  `docs/ARCHITECTURE.md`, `docs/VISION_PAA.md`
-- `protocols/` and its templates
-- `records/`, `results/`, `research/`, `tests/`, `tools/`, `experiments/README.md` — the
-  READMEs describing layout, not records
-- `legacy/pipeline_v1/README.md`
-- the per-gate `STATUS.md` files (their *status* line tracks the roadmap; their
-  *launching conditions* are placeholders for item 2)
+## Per-item verification
 
-## Ordering
+Run these five checks **per item**, and record the result in the table below. An item is not
+done because the file was copied; it is done because all five passed.
 
-Copy in the order of the table. Items 1–2 first, because every other document refers to
-them; item 8 last, because a manifest is only useful once the code version it names is
-settled.
+1. **Completeness** — is the original text there in full, including sections that no longer
+   seem relevant? Compare length and headings against the source.
+2. **Numbers** — thresholds, `n`, effect sizes, dates: identical to the source, not
+   recomputed, not rounded.
+3. **Identifiers** — round IDs (`r72`, `r78`, …), gate numbers, decision IDs: unchanged.
+4. **Verdict state** — frozen stays frozen; "criterion not reached" stays that; nothing is
+   promoted or demoted in transit.
+5. **No dead links** — any path referenced inside the migrated text either still exists, or
+   is annotated as `(historical path: …)`. Old paths are not silently rewritten, because a
+   reader needs to know the record refers to a tree that has since moved.
 
-## Verification after migration
+### Verification log
 
-- [ ] `docs/NORTH_STAR.md` contains the v2 text, not a summary of it
-- [ ] Every gate's pass conditions come from the original, with their original dates
-- [ ] `r72`/`r78`/`r79`/`r80` are separate files, not one consolidated narrative
-- [ ] The `E2=甲` decision is findable from `gate4/STATUS.md`
-- [ ] No old verdict was edited while being copied
-- [ ] No file in `records/` was regenerated from memory
+| # | Date | Checked by | 1 complete | 2 numbers | 3 IDs | 4 state | 5 links | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | | | | | | | | |
+| 2 | | | | | | | | |
+| 3 | | | | | | | | |
+| 4 | | | | | | | | |
+| 5 | | | | | | | | |
+| 6 | | | | | | | | |
+| 7 | | | | | | | | |
+| 8 | | | | | | | | |
+
+## A ninth item that is not a migration, but must be settled
+
+**Authorship and licensing.** `LICENSE` is MIT for the whole repository. That is only valid
+if every line in it was written by the author, or is covered by a compatible licence.
+
+What has been checked by static scan (2026-11-15):
+
+- no third-party copyright, SPDX or licence headers anywhere in `legacy/`, `tests/` or
+  `tools/`;
+- no vendored code: the only imports across the whole tree are the Python standard library
+  and NumPy;
+- the model equations follow published work, but the implementations are local — equations
+  and parameter values are not copyrightable expression, code is.
+
+What a scan cannot check, and only the author can confirm:
+
+- [ ] no block was copied from another project without its header (e.g. adapted from a
+      tutorial, a paper's reference implementation, or a colleague's script);
+- [ ] no code was produced under a different employer/institution agreement that restricts
+      licensing;
+- [ ] if any such block exists, it is either removed, rewritten, or accompanied by its
+      original notice in a `NOTICE` file.
+
+Until the three boxes are ticked, the MIT grant should be read as the author's intent rather
+than as a completed legal audit.
+
+See `docs/PROVENANCE.md` for the provenance record.
+
+## After migration
+
+- [ ] all eight items verified
+- [ ] `experiments/gate*/STATUS.md` point at `docs/RESEARCH_ROADMAP.md` instead of restating
+      pass conditions
+- [ ] no file in `records/` was regenerated from memory
+- [ ] this file replaced by a one-paragraph note or deleted
+- [ ] the migration commits are left in the history — do not squash them away, they are the
+      record of when the tree moved and what moved with it
+
+Migration commits: `7458e3c` (layout + snapshot), `e9212c9` (pipeline moved into
+`legacy/pipeline_v1/`).

@@ -1,0 +1,52 @@
+# Run manifest — copy to records/manifests/YYYY-MM-DD_<experiment_id>_<slug>.yaml
+#
+# Fill this immediately after the run, from the run itself — not from memory later.
+# See records/README.md for why each of the seven links is required. If a value was not
+# recorded, write `unknown`; do not reconstruct it.
+
+experiment_id: r00                     # never reused; matches the preregistration
+gate: 0
+git_commit: unknown                    # `git rev-parse HEAD` at the time of the run
+date: 2026-01-01
+
+config: experiments/gate0/configs/r00.yaml
+command: >
+  python legacy/pipeline_v1/01_substrate.py --criteria --seed 411 --units 25 --ms 30000
+
+seeds: [411]
+
+arms:
+  test: unknown                        # exact arm identifiers accepted by the code
+  control: unknown
+
+environment:
+  python: unknown                      # sys.version.split()[0]
+  numpy: unknown                       # np.__version__
+  os: unknown                          # e.g. win32 / linux
+  cpu: unknown                         # optional, only if it could affect timing
+
+weight_fingerprints:                   # per seed, per arm; proves the intervention arrived
+  411:
+    test: unknown
+    control: unknown
+
+raw_output:                            # the archive, not its contents
+  location: unknown                    # path or storage identifier outside this repository
+  size_bytes: unknown
+  sha256: unknown
+
+logs:
+  location: unknown
+  sha256: unknown
+
+instrument_checks:                     # see protocols/instrument_validation.md
+  deliberate_failure_moved: unknown    # true / false
+  control_at_null: unknown
+  knob_engagement: unknown
+  gate0_samples_per_class: unknown
+  null_arm_present: unknown
+
+decision: unknown                      # records/decisions/YYYY-MM-DD_r00_decision.md
+                                       # leave as unknown until the decision is written
+notes: >
+  Anything that went differently: a miswired arm, a crash, a repeated run.

@@ -21,6 +21,9 @@ be true before anything runs.
 The status column above is a pointer, not the record — the record is the decision in
 `records/decisions/`.
 
+★ A gate's `STATUS.md` **points at** the roadmap rather than restating its pass conditions.
+One copy, so there is no second version to drift.
+
 ## Directory convention
 
 Each open gate has four subdirectories:

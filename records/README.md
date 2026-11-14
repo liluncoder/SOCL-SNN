@@ -19,32 +19,53 @@ cites the old one.
 
 Large runs produce large outputs. Git is the wrong place for them, and a repository that
 tries to hold them stops being readable. What must be in Git is the ability to **trace**
-the data, not the data:
+the data, not the data.
+
+## Every manifest links seven things
+
+A manifest that is missing any of these is not a manifest — it is a note:
+
+| # | Link | Why it is required |
+| --- | --- | --- |
+| 1 | **Git commit** | A conclusion belongs to a code version. Without this, a later change silently re-owns an old result. |
+| 2 | **Experiment ID** (`r42`) | Ties the run to its preregistration and its decision. IDs are never reused. |
+| 3 | **Random seeds** | The unit of a paired comparison. A run without its seed set cannot be re-run. |
+| 4 | **Config file** | The exact parameters, versioned in `experiments/gate<N>/configs/`. |
+| 5 | **Raw log hash** | Proves the archive is the archive that was analysed, not a later export. |
+| 6 | **Weight fingerprint** | Proves the intervention arrived, at a fixed seed — see `protocols/intervention_verification.md`. |
+| 7 | **Decision record** | The outcome, in `records/decisions/`. Left empty until decided; a manifest with no decision is a run, not a result. |
 
 ```yaml
-round: r42
-code_commit: <sha>
+experiment_id: r42
+git_commit: <sha>
 config: experiments/gate0/configs/r42.yaml
 seeds: [411, 421, 431]
-weight_fingerprints:
-  411: <hash>
-  421: <hash>
+weight_fingerprints:            # 6 — one per seed, per arm
+  411: {arm_a: <hash>, arm_b: <hash>}
+  421: {arm_a: <hash>, arm_b: <hash>}
 environment: {python: "3.13", numpy: "1.26.4", os: "win32"}
-raw_output:
+raw_output:                     # 5 — the archive, not its contents
   location: <path or storage id outside this repository>
   size: <bytes>
   sha256: <hash of the archive>
-decision: records/decisions/2026-11-14_r42_decision.md
+logs:
+  location: <path>
+  sha256: <hash>
+decision: records/decisions/2026-11-14_r42_decision.md   # 7
 ```
 
-With that, a reader can tell whether a number came from a run, and can ask for the archive
-by hash. Without it, the number is a rumour.
+With that, a reader can tell whether a number came from a run, reproduce it at the same
+commit, and ask for the archive by hash. Without it, the number is a rumour.
+
+A blank copy is at `records/manifests/_template.yaml`.
 
 ## What is forbidden here
 
 - Editing a decision after it was recorded.
 - Deleting a diagnostic because the defect was fixed.
 - Replacing a record with a summary of it.
+- Filling in a manifest from memory after the run. If the value was not recorded, it is
+  unknown, and unknown has to be written as unknown.
 
 A fixed defect is still part of the history: the old decision was made with the broken
 instrument, and that fact has to remain visible.

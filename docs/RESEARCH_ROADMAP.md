@@ -56,10 +56,27 @@ that had to be withdrawn.
 
 ## Pass conditions
 
-Pass conditions are per-gate and are written into the gate's own preregistration — a
-threshold, a control, an `n`, and an MDES, following `protocols/preregistration.md`. They are
-not maintained in this file, because a roadmap sentence is easy to adjust after seeing
-results and a preregistration is not.
+The **canonical** pass conditions for each gate live in this document, in the form they were
+originally written: thresholds, dates, and the status they were given at the time. They are
+not paraphrased here and they are not restated per gate directory — each
+`experiments/gate<N>/STATUS.md` points back to this file instead, so there is one copy to
+check and no second version to drift.
+
+> **Pending migration.** The original text of the Gate 0–6 conditions is item 2 of
+> `MIGRATION.md`. Until it is copied in verbatim, this section deliberately contains no
+> conditions: an invented threshold would be worse than an acknowledged gap.
+
+What a gate's pass condition is expected to consist of, once migrated — this is the shape,
+not the content:
+
+| Field | Example of the form, not a value |
+| --- | --- |
+| Question | one sentence, mechanism named |
+| Criterion | a quantity and a threshold, with the threshold's origin |
+| Control | the arm that should show nothing |
+| `n` and MDES | the seed count and the effect this design could detect |
+| Failure destination | where the work goes if the criterion is missed |
+| Date and status | when it was fixed, and whether it is active, planned or frozen |
 
 Gate 0's current state and what it needs are in `experiments/gate0/README.md`. Gates 1–6
 each have a `STATUS.md` stating what would have to be true before anything runs.

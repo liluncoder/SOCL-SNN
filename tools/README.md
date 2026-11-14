@@ -27,6 +27,14 @@ not part of this directory's group: `05_prototype.py` resolves it as
 `dirname(__file__)/tools/_dms_run.py`, so it has to live beside the pipeline it serves. See
 `legacy/pipeline_v1/README.md`.
 
+**Planned disambiguation.** Two files with the same name doing different jobs is a trap for
+a later reader. When the legacy pipeline is next touched, the protocol utilities here move
+to a subpackage with a name that cannot be confused with a loader (for example
+`tools/protocol/…`), and the loader keeps its name in `legacy/`. The rename is deliberately
+postponed: the pipeline's behaviour has been verified against the current paths, and a
+cosmetic rename is not worth re-verifying experiments for. Until then, always read the path,
+not the filename.
+
 ## Rule
 
 A utility here must be usable without importing the model. If it needs the network, it

@@ -25,6 +25,10 @@ Each stage loads the previous one with `importlib` and a **literal filename**, t
 subclasses it. `tools/_dms_run.py` is what stage 05 loads; it hands back the stage-04 module
 and a weight-fingerprint helper.
 
+★ There is a second `_dms_run.py` in this repository — the one at the root `tools/`
+directory is the protocol-tools tree, not this loader. Same filename, different job. Always
+read the path, not the name. The planned disambiguation is described in `tools/README.md`.
+
 ## Running
 
 Requirements: Python 3.9+, NumPy. No GPU, no plotting library.
