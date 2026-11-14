@@ -24,29 +24,30 @@ there is no duplicated model definition to drift out of sync.
 | 04 | `04_task_environment.py` | Closed-loop task with reward-modulated plasticity — the credit-assignment stage. Five arms — `task_off`, `local`, `global_scalar`, `global_center`, `reward_zero` — to test whether the locality of the modulatory signal matters. |
 | 05 | `05_prototype.py` | Prototype: modulatory drive, feedback projection, target sequences. **Archived, not runnable** — see *Caveats*. |
 
-## Pre-registered criteria
+## What `--criteria` reports
 
-Before running the development experiment in stage 01, four criteria were fixed, and a
-fifth was added as a guard:
+Stage 01 can print five structural quantities, each for three arms (everything on;
+plasticity off; normalisation off):
 
-1. **Bimodal long-range weight distribution** — peak separation above 0.5 (rescaled to
-   the actual weight range, see below).
-2. **Mean long-range weight shifts by more than 20%** from its initial value.
-3. **Modularity Q above 0.3.**
-4. **Mean distance of long-range edges shrinks** — ratio below 0.9.
-5. **Guard: near-vs-far firing-rate gap above 0.1.** Criteria 1–4 could in principle be
-   satisfied by a network that has stopped doing anything at all. The guard checks that
-   near neighbours actually fire more than distant ones, so a silent or homogenized
-   network cannot "pass".
-
-Criterion 1 as originally written (absolute separation > 0.5) turned out to be
-unsatisfiable: the entire weight range after development is smaller than that. The code
-therefore reports both the raw number and a threshold rescaled to the observed range,
-and prints both verdicts rather than quietly loosening the criterion.
+1. peak separation of the long-range weight distribution
+2. relative change of the mean long-range weight
+3. modularity Q
+4. ratio of mean long-range edge distance to its initial value
+5. near-minus-far firing-rate gap
 
 ```bash
 python 01_substrate.py --criteria --seed 7
 ```
+
+The thresholds that appear next to those numbers are constants in the source, and the
+tally applies a "≥2 of 4 counts as a pass" convention. Both are conventions of this code,
+not statistics — [`operations/02_experiments.md`](operations/02_experiments.md) describes
+what to do instead.
+
+★ Two things to check before reading the output. Criterion 1 is printed **twice**, raw
+and rescaled by the model's weight ceiling, because the raw threshold is in absolute
+weight units. Criterion 3 returns `nan` whenever the binarised correlation graph has too
+few edges, which is a sparsity limit of your `--units`, not an absence of structure.
 
 The same script provides the controls used against it: `--nodev` (no birth/death) and
 `--no-prune` (no synaptic pruning).
@@ -59,7 +60,7 @@ The same script provides the controls used against it: `--nodev` (no birth/death
 
 ## Running
 
-Stages 01–04 run from a fresh clone. Paths are resolved relative to each file, so the
+Stages 01–03 run from a fresh clone. Paths are resolved relative to each file, so the
 working directory does not matter.
 
 ```bash
@@ -68,6 +69,21 @@ python 02_working_memory.py --smoke
 python 03_memory_driven_action.py --smoke
 python 04_task_environment.py --smoke
 ```
+
+Stage 04 runs from the command line only in its interface and calibration modes: the
+five experimental arms exist in `build(..., arm=...)` but every CLI call site hard-codes
+`arm='task_off'`. How to drive the other arms is in
+[`operations/04_extend.md`](operations/04_extend.md) §3.
+
+## Documentation
+
+[`operations/`](operations/) is the manual for using this code: how to run each stage and
+what it prints ([`01_usage.md`](operations/01_usage.md)), how to design and register your
+own runs ([`02_experiments.md`](operations/02_experiments.md)), the code-level
+constraints that will silently ruin a measurement ([`03_traps.md`](operations/03_traps.md)),
+and how to add a stage or an arm ([`04_extend.md`](operations/04_extend.md)). A blank
+pre-registration form is in
+[`operations/templates/`](operations/templates/pre-registration.md).
 
 Every stage has `--help`. Stages 02 and 03 offer `--smoke` for a fast check that the
 mechanism is not immediately broken; 01 offers `--nodev` and `--no-prune` as controls;
@@ -81,7 +97,8 @@ and are not tracked.
 - **`05_prototype.py` cannot run here.** It imports `tools/_dms_run.py`, a framework
   module that belongs to the private working tree and is not published. The stage is
   included because it shows the direction the project was heading; it exits with an
-  explanation instead of a stack trace. Everything upstream of it is self-contained.
+  explanation instead of a stack trace. Stages 01–03 are self-contained; stage 04 has
+  all five arms in code but exposes only `task_off` on the command line.
 - **Chinese comments and console output are original.** The code was written with
   Chinese inline commentary and Chinese console output, and that has been left intact
   rather than translated. Filenames and interface text are English.
@@ -90,6 +107,7 @@ and are not tracked.
 
 ## Status
 
-Active, slow, and mostly negative so far. Several arms exist specifically to fail —
-`task_off`, `reward_zero`, `sham_B`, `no_slot` — because a result is only worth recording
-if the control that should not work also does not work.
+Work in progress. This repository publishes the code and the method, not the results —
+the experiment archive stays private. Several arms (`task_off`, `reward_zero`, `sham_B`,
+`no_slot`) are controls rather than conditions of interest: they exist so that a
+mechanism can be separated from everything else that is also switched on.
