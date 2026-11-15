@@ -100,6 +100,14 @@ source or from a recorded measurement.
    comparison of rates, with no dependence on which came first. This is why "which input caused
    this spike" is not representable, and why adding traces cannot produce direction.
 
+9. **Order-dependent credit is representable.** Give each synapse one eligibility, armed by one
+   cell's spike and spent by the other's, and the order decides the sign: the same edge moves
+   `+0.010` when the presynaptic cell fired first and `−0.011` when the postsynaptic cell did,
+   with an unpaired event leaving it untouched. In the task venue this concentrates credit on
+   the answer pathway by roughly a factor of five relative to the previous rule. Representable
+   again, not yet effective — the venue has to be re-calibrated for the new rule before any
+   behavioural comparison means anything.
+
 Findings 1, 3 and 4 are the formal content of **Candidate 1** (representational limits of
 low-dimensional modulatory credit assignment); finding 2 is the measurement side of
 **Candidate 2** (sign reversals and edge-level decomposition of synaptic updates). The full

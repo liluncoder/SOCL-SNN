@@ -18,6 +18,7 @@ belongs in a log.
 | 7 | A readout window can invert a result | Established | Two windows on one configuration: 0.03 vs 1.00 | The reason instrument validation is a separate protocol step, not a subsection of preregistration |
 | 8 | Per-branch credit is representable | Established at the mechanism level | Two synapses on one cell, identical presynaptic trace, different branches: updates differ by exactly the branch-activity ratio | Representable is not the same as effective — whether it changes behaviour is still undecided |
 | 9 | The update rule has no timing window | Established | Swapping the order of the two events leaves the edge update unchanged: difference exactly 0 | Per-edge credit reduces to `R·(A₊·x_pre − A₋·y_post)`, a rate comparison; no pair interaction, so causality has no sign |
+| 10 | Order-dependent credit is representable | Established at the mechanism level | One eligibility per synapse, armed by one cell and spent by the other: the same edge gives +0.010 (pre first) vs −0.011 (post first); unpaired gives 0 | In the task venue it raises the answer pathway's share of the write from ≈0.2% to ≈0.9%. Effective is not yet shown — the rule changed, so the venue must be re-calibrated first |
 
 ## What is not in this register yet
 
@@ -26,12 +27,10 @@ Two questions are under test and do not have a verdict:
 - **Does per-branch credit change behaviour?** The mechanism is in place and the effect is
   measurable, but the paired design so far is undecided: the effect sits below the minimum
   detectable effect at the sample size used.
-- **Does anything make the write selective?** Branch identity changes how credit is divided
-  *within* a cell; it does not give the update a preference for edges that matter — and finding
-  9 shows the rule cannot, because it never sees the two cells jointly. What would is a term in
-  which pre and post appear together with a sign: a per-edge eligibility that one cell's spike
-  increments and the other cell's spike spends, which is the classical pair-based window. That
-  is the next mechanism to try, not another trace.
+- **Does order-dependent credit change behaviour?** The mechanism exists and the probe shows
+  the sign flips with order (entry 10), but the rule itself changed, so every earlier number
+  belongs to the old rule. Nothing can be compared until the venue is re-calibrated under the
+  new one.
 
 ## Reading the register
 

@@ -66,6 +66,10 @@ DEFAULT_CFG = {
     # byte-identical to the point-neuron rule.
     'branch': {'on': False, 'n': 4, 'tau_ca': 60.0, 'fac_max': 3.0},
 
+    # gate-1: pair-based eligibility. One trace per edge, incremented by one cell's spike
+    # and spent by the other's, so the order of the two events decides the sign.
+    'pair': {'on': False, 'tau': 20.0},
+
     'syn': {
         'on': True,
 
@@ -502,6 +506,16 @@ class Network:
         else:
             self.br_branch = np.zeros(pre.size, np.int64)
             self.br_s = None
+
+        pr = c.get('pair', {})
+        self.pair_on = bool(pr.get('on', False))
+        if self.pair_on:
+            # one eligibility per synapse, for potentiation and for depression
+            self.e_ltp = np.zeros(pre.size, np.float64)
+            self.e_ltd = np.zeros(pre.size, np.float64)
+        else:
+            self.e_ltp = None
+            self.e_ltd = None
         dl = c['delay']
         if dl['on']:
             if dl.get('decouple'):
@@ -1015,6 +1029,62 @@ class Network:
         m = self.br_s[post_idx].mean(axis=1)
         return np.clip(s / np.maximum(m, 1e-12), 0.0, self.br_fac_max)
 
+    def _pair_step(self, spk):
+        """Pair-based update: an edge's eligibility is set by one cell's spike and spent by
+        the other's, so the order decides the sign.
+
+        Both consumptions read the eligibility as it stood *before* this step increments
+        anything, which is why a pre and a post spike in the same time step do not pair with
+        themselves.
+        """
+        c = self.syn_cfg
+        ee = self.S['ee']
+        w = ee['w']
+
+        st = self.in_ptr[spk]
+        cnt = self.in_ptr[spk + 1] - st
+        tot = int(cnt.sum())
+        if tot:
+            off = np.arange(tot) - np.repeat(np.cumsum(cnt) - cnt, cnt)
+            wi_in = self.in_order[np.repeat(st, cnt) + off]
+            Ri = np.repeat(self._reward_of(spk), cnt)
+        else:
+            wi_in = np.zeros(0, np.int64)
+            Ri = np.zeros(0)
+
+        st = ee['indptr'][spk]
+        cnt = ee['indptr'][spk + 1] - st
+        tot = int(cnt.sum())
+        if tot:
+            off = np.arange(tot) - np.repeat(np.cumsum(cnt) - cnt, cnt)
+            wi_out = np.repeat(st, cnt) + off
+            Rj = self._reward_of(ee['post'][wi_out])
+        else:
+            wi_out = np.zeros(0, np.int64)
+            Rj = np.zeros(0)
+
+        e_l = self.e_ltp[wi_in].copy() if wi_in.size else None
+        e_d = self.e_ltd[wi_out].copy() if wi_out.size else None
+
+        if wi_in.size:
+            if self.br_on:
+                e_l = e_l * self._br_fac(np.repeat(spk, self.in_ptr[spk + 1] - self.in_ptr[spk]), wi_in)
+            w[wi_in] += c['A_plus'] * e_l * Ri
+            self.e_ltp[wi_in] = 0.0
+        if wi_out.size:
+            if self.br_on:
+                e_d = e_d * self._br_fac(ee['post'][wi_out], wi_out)
+            w[wi_out] -= c['A_minus'] * e_d * Rj
+            self.e_ltd[wi_out] = 0.0
+
+        # a spike arms the opposite trace on the edges it can pair with later
+        if wi_out.size:
+            self.e_ltp[wi_out] += 1.0
+        if wi_in.size:
+            self.e_ltd[wi_in] += 1.0
+
+        np.clip(w, c['w_min'], self.w_max if hasattr(self, 'w_max') else self._w_hi(), out=w)
+
     def _stdp_step(self, spk):
         c = self.syn_cfg
         ee = self.S['ee']
@@ -1026,6 +1096,10 @@ class Network:
 
         _tsk = self._ts_kind
         _ts_upd, _ts_open = self._ts_upd, self._ts_open
+
+        if self.pair_on:
+            self._pair_step(spk)
+            return
 
         st = ee['indptr'][spk]
         cnt = ee['indptr'][spk + 1] - st
@@ -1224,6 +1298,11 @@ class Network:
 
             if self.br_on:  # branch trace decays with its own time constant
                 self.br_s *= math.exp(-self.dt / float(self.cfg['branch']['tau_ca']))
+
+            if self.pair_on:  # the window width: how long a spike can wait for its partner
+                _d = math.exp(-self.dt / float(self.cfg['pair']['tau']))
+                self.e_ltp *= _d
+                self.e_ltd *= _d
 
             if self._tag_on:
                 self.tag *= math.exp(-1.0 / self.tag_tau)
@@ -1909,6 +1988,72 @@ def report(args):
     print('[报告] -> %s' % pth)
     return pth
 
+def pair_probe(args):
+    """Order must now decide the sign: pre-then-post potentiates, post-then-pre depresses.
+
+    Each case arms one eligibility, then fires the partner cell. The rule must spend what was
+    armed and leave it at zero, so the same edge cannot be paid twice for one event.
+    """
+    log = print
+    cfg = _merge(copy.deepcopy(DEFAULT_CFG), {'n_units': 4})
+    cfg['pair'] = dict(DEFAULT_CFG['pair'])
+    cfg['pair']['on'] = True
+    net = Network(cfg)
+    ee = net.S['ee']
+    net._reward_of = lambda cells: np.ones(len(np.atleast_1d(cells)), float)
+
+    j, e = None, None
+    for cell in range(net.N_E):
+        st, en = int(net.in_ptr[cell]), int(net.in_ptr[cell + 1])
+        if en - st >= 1:
+            j, e = cell, int(net.in_order[st])
+            break
+    if j is None:
+        log('❌ 找不到入边，测试无法进行')
+        return 1
+    p = int(ee['pre'][e])
+
+    def fire(cell, arm_ltp=None, arm_ltd=None):
+        w0 = float(ee['w'][e])
+        net.e_ltp[:] = 0.0
+        net.e_ltd[:] = 0.0
+        if arm_ltp is not None:
+            net.e_ltp[arm_ltp] = 1.0
+        if arm_ltd is not None:
+            net.e_ltd[arm_ltd] = 1.0
+        net._stdp_step(np.array([cell], dtype=np.int64))
+        return float(ee['w'][e]) - w0, float(net.e_ltp[e]), float(net.e_ltd[e])
+
+    log('=' * 78)
+    log('闸1 · 成对资格迹 · 合成检查')
+    log('=' * 78)
+    log('  边 e: pre=%d -> post=%d ｜ 每次只给一个事件装备资格迹' % (p, j))
+    log('')
+
+    a, la, da = fire(j, arm_ltp=e)      # pre fired first, then post
+    b, lb, db = fire(p, arm_ltd=e)      # post fired first, then pre
+    log('  A 前→后：装备 e_ltp，后细胞发放     Δw = %+.4e  (e_ltp 剩余 %.1f)' % (a, la))
+    log('  B 后→前：装备 e_ltd，前细胞发放     Δw = %+.4e  (e_ltd 剩余 %.1f)' % (b, db))
+    c, _, _ = fire(j)                   # nothing armed
+    log('  C 无装备：直接发放                 Δw = %+.4e' % c)
+    log('')
+
+    ok_a = a > 1e-12
+    ok_b = b < -1e-12
+    ok_c = abs(c) <= 1e-18
+    log('  ✅/❌ A 前→后 ⇒ 增强：%s' % ('✅' if ok_a else '❌'))
+    log('  ✅/❌ B 后→前 ⇒ 抑制：%s' % ('✅' if ok_b else '❌'))
+    log('  ✅/❌ C 无配对 ⇒ 不动：%s' % ('✅' if ok_c else '❌'))
+    log('')
+    if ok_a and ok_b and ok_c:
+        log('★ 判定：**顺序决定符号** —— 同一条边，谁先谁后给出相反的更新。')
+        log('  这是旧规则（迹的乘积）做不到的：那里两项可交换相加，差额恒为 0。')
+    else:
+        log('★ 判定：不成立，检查资格迹的装备/消费顺序。')
+    log('=' * 78)
+    return 0 if (ok_a and ok_b and ok_c) else 1
+
+
 def timing_probe(args):
     """Does an edge's update depend on the *order* of pre and post, or only on their rates?
 
@@ -2163,11 +2308,15 @@ def main():
     ap.add_argument('--headless', action='store_true')
     ap.add_argument('--report', action='store_true')
     ap.add_argument('--criteria', action='store_true', help='★验收：四条预注册判据 + 两条对照臂')
+    ap.add_argument('--pair-probe', action='store_true',
+                    help='★闸1：成对资格迹是否让先后决定符号')
     ap.add_argument('--timing-probe', action='store_true',
                     help='★闸1：检查更新是否依赖 pre/post 的先后（还是只依赖强度）')
     ap.add_argument('--branch-probe', action='store_true',
                     help='★闸1：分支局部信用的合成检查（同 post、两分支、同 pre 迹）')
     args = ap.parse_args()
+    if args.pair_probe:
+        raise SystemExit(pair_probe(args))
     if args.timing_probe:
         raise SystemExit(timing_probe(args))
     if args.branch_probe:
