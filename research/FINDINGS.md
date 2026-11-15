@@ -18,7 +18,7 @@ belongs in a log.
 | 7 | A readout window can invert a result | Established | Two windows on one configuration: 0.03 vs 1.00 | The reason instrument validation is a separate protocol step, not a subsection of preregistration |
 | 8 | Per-branch credit is representable | Established at the mechanism level | Two synapses on one cell, identical presynaptic trace, different branches: updates differ by exactly the branch-activity ratio | Representable is not the same as effective — whether it changes behaviour is still undecided |
 | 9 | The update rule has no timing window | Established | Swapping the order of the two events leaves the edge update unchanged: difference exactly 0 | Per-edge credit reduces to `R·(A₊·x_pre − A₋·y_post)`, a rate comparison; no pair interaction, so causality has no sign |
-| 10 | Order-dependent credit is representable | Established at the mechanism level | One eligibility per synapse, armed by one cell and spent by the other: the same edge gives +0.010 (pre first) vs −0.011 (post first); unpaired gives 0 | In the task venue it raises the answer pathway's share of the write from ≈0.2% to ≈0.9%. Effective is not yet shown — the rule changed, so the venue must be re-calibrated first |
+| 10 | Order-dependent credit changes behaviour | Established for one venue | Paired, 10 seeds: accuracy 0.535 → 0.708, Δ = +0.173, t = 4.55, 8/10 seeds positive, against an MDES of 0.107 | Not a window artefact (τ 20 ms vs 1 ms: identical means) and not a step-size artefact (write matched to the old rule: Δ = +0.167). Cause is the remaining structural difference, not the window |
 
 ## What is not in this register yet
 
@@ -27,10 +27,11 @@ Two questions are under test and do not have a verdict:
 - **Does per-branch credit change behaviour?** The mechanism is in place and the effect is
   measurable, but the paired design so far is undecided: the effect sits below the minimum
   detectable effect at the sample size used.
-- **Does order-dependent credit change behaviour?** The mechanism exists and the probe shows
-  the sign flips with order (entry 10), but the rule itself changed, so every earlier number
-  belongs to the old rule. Nothing can be compared until the venue is re-calibrated under the
-  new one.
+- **Why does it work?** Entry 10 shows the gain is real, and two controls exclude the obvious
+  explanations: it survives a twentyfold shorter eligibility window and a sixfold smaller step.
+  What is left is a structural difference — the two rules depress different edge sets (the old
+  one acts on the spiking cell's outgoing edges, weighted by the target's trace) and only the
+  new one spends its eligibility. Separating those two changes is the next experiment.
 
 ## Reading the register
 

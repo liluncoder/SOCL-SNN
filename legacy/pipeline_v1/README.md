@@ -89,7 +89,12 @@ Verified against the source; each one produces a number that looks fine.
 7. **Stage 05's `--mod-dim` gates the modulation path.** Without it, `R_abs*`, `inj_*`,
    `sc_med`, `wfb_*` are 0 or `NaN` by construction — set on an `else` branch, not a failure.
 
-8. **Do not add a plotting import at module level.** Importing stage 05 imports stage 01;
+8. **`cfg['syn']` is shared between builds.** `task_cfg` hands the same nested dict to every
+   network in a process, so mutating `net.syn_cfg` in place changes the next run too — measured
+   as a geometric decay across seeds (dw 26 → 2.9 → 0.53 → 0.077) when a scale factor was
+   applied per run. Rebind a copy before changing it.
+
+9. **Do not add a plotting import at module level.** Importing stage 05 imports stage 01;
    a module-level `import matplotlib` would become a hard dependency of the whole chain.
 
 ## Extending it

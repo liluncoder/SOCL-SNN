@@ -100,13 +100,19 @@ source or from a recorded measurement.
    comparison of rates, with no dependence on which came first. This is why "which input caused
    this spike" is not representable, and why adding traces cannot produce direction.
 
-9. **Order-dependent credit is representable.** Give each synapse one eligibility, armed by one
-   cell's spike and spent by the other's, and the order decides the sign: the same edge moves
-   `+0.010` when the presynaptic cell fired first and `−0.011` when the postsynaptic cell did,
-   with an unpaired event leaving it untouched. In the task venue this concentrates credit on
-   the answer pathway by roughly a factor of five relative to the previous rule. Representable
-   again, not yet effective — the venue has to be re-calibrated for the new rule before any
-   behavioural comparison means anything.
+9. **Order-dependent credit is representable, and it changes behaviour.** Give each synapse one
+   eligibility, armed by one cell's spike and spent by the other's, and the order decides the
+   sign: the same edge moves `+0.010` when the presynaptic cell fired first and `−0.011` when
+   the postsynaptic cell did, with an unpaired event leaving it untouched. In the task venue
+   this raises accuracy from 0.537 to 0.713 — a paired effect of **+0.175** (t = 2.9 at five
+   seeds, t = 4.6 at ten; 8 of 10 seeds positive), which clears the design's minimum detectable
+   effect.
+
+   Two controls constrain the explanation. Shrinking the eligibility window twentyfold leaves
+   the effect unchanged, and scaling the learning rate down by 6× to match the old rule's total
+   write leaves it at +0.167. So the gain is neither a window artefact nor a step-size artefact.
+   What remains different between the two rules is *which* edges are depressed and the one-shot
+   reset — that is the open question, stated in `research/FINDINGS.md`.
 
 Findings 1, 3 and 4 are the formal content of **Candidate 1** (representational limits of
 low-dimensional modulatory credit assignment); finding 2 is the measurement side of
