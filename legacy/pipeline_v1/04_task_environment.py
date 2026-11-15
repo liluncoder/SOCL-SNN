@@ -628,7 +628,7 @@ class TaskNet(m2.ActNet):
 def task_cfg(seed=51, trace=False, norm_on=None, win_t0=WIN_T0, win_t1=WIN_T1,
              eng_scale_mode='legacy', eng_scale_scope='global', eng_outlet=None,
              branch_on=False, branch_n=None, pair_on=False, pair_tau=None,
-             pair_spend=True):
+             pair_spend=True, pair_scope='pair'):
     c = m2.m2_cfg(False)
     c['dev'] = {'on': True, 'energy_only': True,
                 'eng_scale_mode': str(eng_scale_mode),
@@ -654,11 +654,12 @@ def task_cfg(seed=51, trace=False, norm_on=None, win_t0=WIN_T0, win_t1=WIN_T1,
     if pair_tau:
         c['pair']['tau'] = float(pair_tau)
     c['pair']['spend'] = bool(pair_spend)
+    c['pair']['scope'] = str(pair_scope)
     return c
 
 def build(seed=51, arm='task_off', w_stim=W_STIM0, w_p8=W_P8_0, r_star=R_STAR0,
           branch_on=False, branch_n=None, pair_on=False, pair_tau=None,
-          pair_spend=True,
+          pair_spend=True, pair_scope='pair',
           p_safe=0.5, use_marker=True, n_trial=N_TRIAL, round_ms=ROUND_MS, trace=False,
           choice_mode=CHOICE_MODE0, win_t0=WIN_T0, win_t1=WIN_T1, eng_scale_mode='legacy',
           eng_scale_scope='global', eng_outlet=None, newpath_w=0.0, marker_kill=False,
@@ -669,7 +670,8 @@ def build(seed=51, arm='task_off', w_stim=W_STIM0, w_p8=W_P8_0, r_star=R_STAR0,
     cfg = task_cfg(seed=seed, trace=trace, win_t0=win_t0, win_t1=win_t1,
                    eng_scale_mode=eng_scale_mode, eng_scale_scope=eng_scale_scope,
                    eng_outlet=eng_outlet, branch_on=branch_on, branch_n=branch_n,
-                   pair_on=pair_on, pair_tau=pair_tau, pair_spend=pair_spend)
+                   pair_on=pair_on, pair_tau=pair_tau, pair_spend=pair_spend,
+                   pair_scope=pair_scope)
     cfg['_p8_w'] = float(w_p8)
     cfg['_newpath_w'] = float(newpath_w)
     cfg['_marker_kill'] = bool(marker_kill)

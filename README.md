@@ -100,7 +100,7 @@ source or from a recorded measurement.
    comparison of rates, with no dependence on which came first. This is why "which input caused
    this spike" is not representable, and why adding traces cannot produce direction.
 
-9. **Order-dependent credit is representable, and it changes behaviour.** Give each synapse one
+9. **Credit measurement needs a venue that does not supply the answer.** Give each synapse one
    eligibility, armed by one cell's spike and spent by the other's, and the order decides the
    sign: the same edge moves `+0.010` when the presynaptic cell fired first and `−0.011` when
    the postsynaptic cell did, with an unpaired event leaving it untouched. In the task venue
@@ -108,13 +108,16 @@ source or from a recorded measurement.
    seeds, t = 4.6 at ten; 8 of 10 seeds positive), which clears the design's minimum detectable
    effect.
 
-   Four variants constrain the explanation: a twentyfold shorter eligibility window (0.713 vs
-   0.713), a 6× smaller step size matched to the old rule's total write (0.704), and leaving the
-   eligibility to decay instead of resetting it after use (0.719). None of them moves the result.
-   What the pair rule has and the trace-product rule lacks is that an edge's update depends on
-   the *joint* history of its two cells rather than on the product of two cell-level rates —
-   which is exactly what makes the old rule factor into one number per presynaptic cell. Testing
-   that directly is the open item in `research/FINDINGS.md`.
+   A first reading of this measured +0.173 (t = 4.55 over ten seeds) against the trace-product
+   rule and looked like a mechanism result. It is not one. Accuracy at this venue turns out to be
+   monotone in how much weight the hand-wired answer pathway receives — 0.535 at a carrier write
+   of 2.0, 0.704 at 4.1, 0.708 at 11.2, 0.865 at 23.9 with the credit shuffled across edges, and
+   0.826 at 49 by simply multiplying the old rule's gain by four. Random assignment beats correct
+   assignment; a blanket gain increase beats the mechanism.
+
+   The conclusion is about the instrument, not the mechanism: while the wiring supplies the
+   answer, more plasticity on that wiring is indistinguishable from better credit. The venue has
+   to make the correct edge depend on the trial before this question can be asked.
 
 Findings 1, 3 and 4 are the formal content of **Candidate 1** (representational limits of
 low-dimensional modulatory credit assignment); finding 2 is the measurement side of

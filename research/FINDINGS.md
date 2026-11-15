@@ -18,7 +18,7 @@ belongs in a log.
 | 7 | A readout window can invert a result | Established | Two windows on one configuration: 0.03 vs 1.00 | The reason instrument validation is a separate protocol step, not a subsection of preregistration |
 | 8 | Per-branch credit is representable | Established at the mechanism level | Two synapses on one cell, identical presynaptic trace, different branches: updates differ by exactly the branch-activity ratio | Representable is not the same as effective — whether it changes behaviour is still undecided |
 | 9 | The update rule has no timing window | Established | Swapping the order of the two events leaves the edge update unchanged: difference exactly 0 | Per-edge credit reduces to `R·(A₊·x_pre − A₋·y_post)`, a rate comparison; no pair interaction, so causality has no sign |
-| 10 | Pair-specific credit changes behaviour | Established for one venue | Paired, 10 seeds: accuracy 0.535 → 0.708, Δ = +0.173, t = 4.55, 8/10 seeds positive, against an MDES of 0.107 | Robust to three knobs, see below |
+| 10 | Accuracy here tracks write on the hand-wired pathway, not credit quality | Established, and it overturns the earlier reading of entry 10 | Same venue, same seeds: old rule 0.535 (carrier write 2.0), old rule ×0.16 0.704 (4.1), pair rule 0.708 (11.2), pair rule with shuffled assignment 0.865 (23.9), old rule ×4 0.826 (49) | Monotone in write, flat against specificity. Random assignment beats correct assignment. A blanket gain increase beats the mechanism |
 
 ## What is not in this register yet
 
@@ -27,20 +27,11 @@ Two questions are under test and do not have a verdict:
 - **Does per-branch credit change behaviour?** The mechanism is in place and the effect is
   measurable, but the paired design so far is undecided: the effect sits below the minimum
   detectable effect at the sample size used.
-- **Why does it work?** Entry 10 survived four variants, which rules out the obvious
-  explanations. Accuracy under the pair rule: 0.713 at τ = 20 ms, 0.713 at τ = 1 ms, 0.704 with
-  the write scaled down 6× to match the old rule, 0.719 with the eligibility left to decay
-  instead of being spent (4 seeds), against 0.535 for the old rule. So it is not the window, not
-  the step size, and not the one-shot reset.
-
-  What all four variants share and the old rule lacks is that an edge's weight depends on the
-  **joint history of its two cells** — how often the pre fired while this particular post was
-  waiting — rather than on the product of two cell-level marginals. The old rule factors as
-  `x_pre × y_post`, which is rank one across a cell's in-edges; the pair rule does not factor.
-
-  The test that would settle it: keep the magnitude and the edge set, but spend a *cell-level*
-  trace instead of a pair-level eligibility. If the gain disappears, pairwise specificity is the
-  cause; if it survives, the cause is elsewhere and this entry stays unexplained.
+- **Does this venue test credit at all?** No. The answer travels along a hand-wired pathway, so
+  accuracy is monotone in how much weight that pathway receives — and any change that delivers
+  more write looks like a better mechanism. Shuffling the credit across edges *raises* accuracy;
+  multiplying the old rule's gain by four raises it further. Until the correct edge depends on
+  the trial rather than on the wiring, a gain here cannot be attributed to credit assignment.
 
 ## Reading the register
 

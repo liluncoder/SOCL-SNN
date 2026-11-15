@@ -68,7 +68,7 @@ DEFAULT_CFG = {
 
     # gate-1: pair-based eligibility. One trace per edge, incremented by one cell's spike
     # and spent by the other's, so the order of the two events decides the sign.
-    'pair': {'on': False, 'tau': 20.0, 'spend': True},
+    'pair': {'on': False, 'tau': 20.0, 'spend': True, 'scope': 'pair'},
 
     'syn': {
         'on': True,
@@ -510,6 +510,19 @@ class Network:
         pr = c.get('pair', {})
         self.pair_on = bool(pr.get('on', False))
         self.pair_spend = bool(pr.get('spend', True))
+        self.pair_scope = str(pr.get('scope', 'pair'))
+        if self.pair_on and self.pair_scope == 'shuffle':
+            # eligibility values are kept, their assignment to edges is randomised
+            _r = np.random.default_rng(int(c.get('seed', 0)) * 131 + 7)
+            self.shuf_idx = _r.permutation(pre.size)
+        if self.pair_on and self.pair_scope == 'cell':
+            # one counter per cell instead of one per edge: same magnitude and edge set,
+            # but an edge no longer knows anything its presynaptic cell does not
+            self.c_ltp = np.zeros(self.N_E, np.float64)
+            self.c_ltd = np.zeros(self.N_E, np.float64)
+        else:
+            self.c_ltp = None
+            self.c_ltd = None
         if self.pair_on:
             # one eligibility per synapse, for potentiation and for depression
             self.e_ltp = np.zeros(pre.size, np.float64)
@@ -1042,6 +1055,31 @@ class Network:
         ee = self.S['ee']
         w = ee['w']
 
+        if self.pair_scope == 'cell':
+            # spend the cell-level counters, then arm them: no per-edge information
+            st = self.in_ptr[spk]
+            cnt = self.in_ptr[spk + 1] - st
+            tot = int(cnt.sum())
+            if tot:
+                off = np.arange(tot) - np.repeat(np.cumsum(cnt) - cnt, cnt)
+                wi = self.in_order[np.repeat(st, cnt) + off]
+                pre = ee['pre'][wi]
+                Ri = np.repeat(self._reward_of(spk), cnt)
+                w[wi] += c['A_plus'] * self.c_ltp[pre] * Ri
+            st = ee['indptr'][spk]
+            cnt = ee['indptr'][spk + 1] - st
+            tot = int(cnt.sum())
+            if tot:
+                off = np.arange(tot) - np.repeat(np.cumsum(cnt) - cnt, cnt)
+                wi = np.repeat(st, cnt) + off
+                post = ee['post'][wi]
+                Rj = self._reward_of(post)
+                w[wi] -= c['A_minus'] * self.c_ltd[post] * Rj
+            self.c_ltp[spk] += 1.0
+            self.c_ltd[spk] += 1.0
+            np.clip(w, c['w_min'], self._w_hi(), out=w)
+            return
+
         st = self.in_ptr[spk]
         cnt = self.in_ptr[spk + 1] - st
         tot = int(cnt.sum())
@@ -1073,12 +1111,16 @@ class Network:
         if wi_in.size:
             if self.br_on:
                 e_l = e_l * self._br_fac(np.repeat(spk, self.in_ptr[spk + 1] - self.in_ptr[spk]), wi_in)
+            if self.pair_scope == 'shuffle':
+                e_l = self.e_ltp[self.shuf_idx[wi_in]]
             w[wi_in] += c['A_plus'] * e_l * Ri
             if self.pair_spend:
                 self.e_ltp[wi_in] = 0.0
         if wi_out.size:
             if self.br_on:
                 e_d = e_d * self._br_fac(ee['post'][wi_out], wi_out)
+            if self.pair_scope == 'shuffle':
+                e_d = self.e_ltd[self.shuf_idx[wi_out]]
             w[wi_out] -= c['A_minus'] * e_d * Rj
             if self.pair_spend:
                 self.e_ltd[wi_out] = 0.0
@@ -1307,8 +1349,12 @@ class Network:
 
             if self.pair_on:  # the window width: how long a spike can wait for its partner
                 _d = math.exp(-self.dt / float(self.cfg['pair']['tau']))
-                self.e_ltp *= _d
-                self.e_ltd *= _d
+                if self.c_ltp is not None:
+                    self.c_ltp *= _d
+                    self.c_ltd *= _d
+                else:
+                    self.e_ltp *= _d
+                    self.e_ltd *= _d
 
             if self._tag_on:
                 self.tag *= math.exp(-1.0 / self.tag_tau)
