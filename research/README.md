@@ -7,6 +7,10 @@ line of work claim, and under what limits". Merging the two produces the two fai
 this split exists to prevent: a paper conclusion that is really one round's log, and a
 round's log that gets quoted as if it were a paper.
 
+**Start here:** [`FINDINGS.md`](FINDINGS.md) — the register of claims established so far, each
+with its status, its type of evidence, and what is still undecided. The directories below hold
+the analysis and the manuscripts those claims come from.
+
 ## `theory/`
 
 Mathematical analysis: definitions, derivations, representability arguments, bounds.
@@ -29,10 +33,8 @@ Manuscript drafts, candidate research lines, and their reference lists.
 | `candidate1/` | Representational limits of low-dimensional global modulatory credit assignment |
 | `candidate2/` | Sign reversals and edge-level decomposition of synaptic updates |
 
-Status: the manuscripts are **not yet published here**. When they are added, they are added
-verbatim — a manuscript's claims and limits are not edited to match a later roadmap. If a
-later round contradicts a manuscript, the manuscript stays and the contradiction is
-recorded.
+A manuscript is added as it stands and is not edited to match a later roadmap. If a later
+round contradicts one, the manuscript stays and the contradiction is recorded beside it.
 
 ## What does not belong in this directory
 

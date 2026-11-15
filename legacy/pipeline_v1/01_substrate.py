@@ -62,6 +62,10 @@ DEFAULT_CFG = {
     'delay': {'on': True, 'local_ms': 1.0, 'lr_base_ms': 2.0, 'lr_per_unit_ms': 0.6,
               'max_ms': 8.0, 'classes': 4, 'decouple': False},
 
+    # gate-1: branch-local credit. Off by default; with it off the update path is
+    # byte-identical to the point-neuron rule.
+    'branch': {'on': False, 'n': 4, 'tau_ca': 60.0, 'fac_max': 3.0},
+
     'syn': {
         'on': True,
 
@@ -485,6 +489,19 @@ class Network:
         dist = np.abs(pre // nE - post // nE).astype(np.float32)
         dist = np.minimum(dist, U - dist)
         self.syn_dist = dist
+
+        # A presynaptic cell contacts one branch only, so an edge's branch is a property
+        # of its pre cell. br_s[c, b] is the low-passed input that reached branch b of c.
+        br = c.get('branch', {})
+        self.br_on = bool(br.get('on', False))
+        self.br_n = max(1, int(br.get('n', 4)))
+        self.br_fac_max = float(br.get('fac_max', 3.0))
+        if self.br_on:
+            self.br_branch = (pre % self.br_n).astype(np.int64)
+            self.br_s = np.zeros((self.N_E, self.br_n), np.float64)
+        else:
+            self.br_branch = np.zeros(pre.size, np.int64)
+            self.br_s = None
         dl = c['delay']
         if dl['on']:
             if dl.get('decouple'):
@@ -986,6 +1003,18 @@ class Network:
         cells = np.asarray(cells, int)
         return float(lam) * g[cells]
 
+    def _br_fac(self, post_idx, wi):
+        """Relative activation of the branch each synapse lands on.
+
+        fac_b = s_b / mean_b(s_b), clipped to [0, fac_max]. If every branch of a cell
+        is equally active, fac == 1 and the update reduces to the plain (pre, R) rule;
+        what the factor adds is a difference *between* branches, i.e. a way for two
+        synapses on the same cell to receive different credit.
+        """
+        s = self.br_s[post_idx, self.br_branch[wi]]
+        m = self.br_s[post_idx].mean(axis=1)
+        return np.clip(s / np.maximum(m, 1e-12), 0.0, self.br_fac_max)
+
     def _stdp_step(self, spk):
         c = self.syn_cfg
         ee = self.S['ee']
@@ -1006,17 +1035,24 @@ class Network:
             wi = np.repeat(st, cnt) + off
             pj = ee['post'][wi]
             Rj = self._reward_of(pj)
+            if self.br_on:
+                # accumulate the input that reached each branch before scaling the trace
+                _drv = x[ee['pre'][wi]] * w[wi]
+                np.add.at(self.br_s, (pj, self.br_branch[wi]), _drv)
+                ypost = y[pj] * self._br_fac(pj, wi)
+            else:
+                ypost = y[pj]
             if g_tag is None:
-                w[wi] -= c['A_minus'] * y[pj] * Rj
+                w[wi] -= c['A_minus'] * ypost * Rj
             elif _tsk == 0:
                 _ge = g_tag[wi]
-                w[wi] -= c['A_minus'] * y[pj] * Rj * _ge
+                w[wi] -= c['A_minus'] * ypost * Rj * _ge
             elif _tsk == 2:
                 _ge = self._ts_sub[wi]
-                w[wi] -= c['A_minus'] * y[pj] * Rj * _ge
+                w[wi] -= c['A_minus'] * ypost * Rj * _ge
             else:
                 _ge = (self._ts_rng.random(wi.size) < self._ts_rate[wi])
-                w[wi] -= c['A_minus'] * y[pj] * Rj * _ge
+                w[wi] -= c['A_minus'] * ypost * Rj * _ge
 
             if _ts_upd is not None:
                 _ts_upd[wi] += 1
@@ -1031,17 +1067,23 @@ class Network:
             wi = self.in_order[li]
             pj = ee['pre'][wi]
             Ri = self._reward_of(spk)
+            if self.br_on:
+                # eligibility = pre trace * branch factor; factor is 1 when all branches
+                # are equally active, which is why the equal case reduces to the old rule
+                xpre = x[pj] * self._br_fac(np.repeat(spk, cnt), wi)
+            else:
+                xpre = x[pj]
             if g_tag is None:
-                w[wi] += c['A_plus'] * x[pj] * np.repeat(Ri, cnt)
+                w[wi] += c['A_plus'] * xpre * np.repeat(Ri, cnt)
             elif _tsk == 0:
                 _ge = g_tag[wi]
-                w[wi] += c['A_plus'] * x[pj] * np.repeat(Ri, cnt) * _ge
+                w[wi] += c['A_plus'] * xpre * np.repeat(Ri, cnt) * _ge
             elif _tsk == 2:
                 _ge = self._ts_sub[wi]
-                w[wi] += c['A_plus'] * x[pj] * np.repeat(Ri, cnt) * _ge
+                w[wi] += c['A_plus'] * xpre * np.repeat(Ri, cnt) * _ge
             else:
                 _ge = (self._ts_rng.random(wi.size) < self._ts_rate[wi])
-                w[wi] += c['A_plus'] * x[pj] * np.repeat(Ri, cnt) * _ge
+                w[wi] += c['A_plus'] * xpre * np.repeat(Ri, cnt) * _ge
             if _ts_upd is not None:
                 _ts_upd[wi] += 1
                 _ts_open[wi] += _ge
@@ -1179,6 +1221,9 @@ class Network:
             c = self.syn_cfg
             self.xE_t *= math.exp(-1.0 / float(c['tau_pre']))
             self.yE_t *= math.exp(-1.0 / float(c['tau_post']))
+
+            if self.br_on:  # branch trace decays with its own time constant
+                self.br_s *= math.exp(-self.dt / float(self.cfg['branch']['tau_ca']))
 
             if self._tag_on:
                 self.tag *= math.exp(-1.0 / self.tag_tau)
@@ -1864,6 +1909,112 @@ def report(args):
     print('[报告] -> %s' % pth)
     return pth
 
+def branch_probe(args):
+    """Can two synapses on one cell receive different credit at all?
+
+    Setup: same postsynaptic cell, two presynaptic cells, **identical** presynaptic
+    trace and identical synaptic weight, but the two edges land on different branches.
+    Under the scalar rule the two updates are bitwise identical (credit = x[pre] * R).
+    With branch-local eligibility they must differ, and the difference must follow the
+    ratio of branch activation.
+
+    Three cases: (A) all branches equal -> reduces to the old rule; (B) branches
+    unequal -> updates differ; (C) mechanism off -> updates identical regardless.
+    """
+    log = print
+    U = int(args.units or 4)
+    cfg = _merge(copy.deepcopy(DEFAULT_CFG), {'n_units': U})
+    cfg['branch'] = dict(DEFAULT_CFG['branch'])
+    cfg['branch']['on'] = True
+    net = Network(cfg)
+    ee = net.S['ee']
+    net._reward_of = lambda cells: np.ones(len(np.atleast_1d(cells)), float)
+
+    nE = net.nE_slot
+    ib = net.br_branch
+    found = None
+    for j in range(net.N_E):
+        st, en = int(net.in_ptr[j]), int(net.in_ptr[j + 1])
+        if en - st < 2:
+            continue
+        wi = net.in_order[st:en]
+        b = ib[wi]
+        for b1 in range(net.br_n):
+            for b2 in range(b1 + 1, net.br_n):
+                i1 = wi[b == b1]
+                i2 = wi[b == b2]
+                if i1.size and i2.size:
+                    found = (j, int(i1[0]), int(i2[0]), b1, b2)
+                    break
+            if found:
+                break
+        if found:
+            break
+    if found is None:
+        log('❌ 找不到"同一 post、两个分支"的边对 ⇒ 测试无法进行（不是通过）')
+        return 1
+
+    j, e1, e2, b1, b2 = found
+    p1, p2 = int(ee['pre'][e1]), int(ee['pre'][e2])
+    net.xE_t[:] = 0.0
+    net.yE_t[:] = 0.0
+    net.xE_t[p1] = 1.0
+    net.xE_t[p2] = 1.0
+    net.yE_t[j] = 1.0
+    ee['w'][e1] = 0.1
+    ee['w'][e2] = 0.1
+
+    def trial(row):
+        w0 = ee['w'].copy()
+        net.br_s[:] = 0.0
+        net.br_s[j, :] = row
+        net._stdp_step(np.array([j], dtype=np.int64))
+        d = ee['w'] - w0
+        ee['w'][:] = w0
+        return float(d[e1]), float(d[e2])
+
+    log('=' * 78)
+    log('闸1 · 分支局部信用 · 合成检查')
+    log('=' * 78)
+    log('  post=%d ｜ 边 e1: pre=%d branch=%d ｜ 边 e2: pre=%d branch=%d' % (j, p1, b1, p2, b2))
+    log('  两条边的 x[pre] 都为 1.0，权重都为 0.1 ⇒ 旧规则下 Δw 必须逐位相同')
+    log('')
+
+    a1, a2 = trial(np.ones(net.br_n))
+    log('  A 全分支相等   s=%s' % np.round(np.ones(net.br_n), 3))
+    log('     Δw(e1)=%+.6e  Δw(e2)=%+.6e  差=%+.2e' % (a1, a2, a1 - a2))
+
+    row = np.full(net.br_n, 0.25)
+    row[b1] = 2.0
+    row[b2] = 0.5
+    row = row / row.mean()
+    c1, c2 = trial(row)
+    log('  B 分支不等     s=%s（归一到均值 1）' % np.round(row, 3))
+    log('     Δw(e1)=%+.6e  Δw(e2)=%+.6e  比值=%.3f' % (c1, c2, (c1 / c2) if c2 else float('nan')))
+
+    net.br_on = False
+    d1, d2 = trial(np.ones(net.br_n))
+    net.br_on = True
+    log('  C 机制关闭')
+    log('     Δw(e1)=%+.6e  Δw(e2)=%+.6e  差=%+.2e' % (d1, d2, d1 - d2))
+    log('')
+
+    ok_a = abs(a1 - a2) <= 1e-15
+    ok_b = abs(c1 - c2) > 1e-9
+    ok_c = abs(d1 - d2) <= 1e-15
+    log('  ✅/❌ A 全分支相等 ⇒ 逐位相同：%s' % ('✅' if ok_a else '❌'))
+    log('  ✅/❌ B 分支不等   ⇒ 信用可分：%s' % ('✅' if ok_b else '❌'))
+    log('  ✅/❌ C 机制关闭   ⇒ 逐位相同：%s' % ('✅' if ok_c else '❌'))
+    log('')
+    if ok_a and ok_b and ok_c:
+        log('★ 判定：分支局部信用**可表示** —— 同一 post 的两条入线拿到了不同的 Δw，')
+        log('  且全分支相等时退化回旧规则（说明差异来自分支，不是数值噪声）。')
+    else:
+        log('★ 判定：不成立。B 不过 ⇒ 机制没有起作用；A 或 C 不过 ⇒ 实现污染了旧路径。')
+    log('=' * 78)
+    return 0 if (ok_a and ok_b and ok_c) else 1
+
+
 def criteria_run(args):
     U = int(args.units or 40)
     ms = float(args.ms or 12000.0)
@@ -1938,7 +2089,11 @@ def main():
     ap.add_argument('--headless', action='store_true')
     ap.add_argument('--report', action='store_true')
     ap.add_argument('--criteria', action='store_true', help='★验收：四条预注册判据 + 两条对照臂')
+    ap.add_argument('--branch-probe', action='store_true',
+                    help='★闸1：分支局部信用的合成检查（同 post、两分支、同 pre 迹）')
     args = ap.parse_args()
+    if args.branch_probe:
+        raise SystemExit(branch_probe(args))
     if args.criteria:
         criteria_run(args)
         return

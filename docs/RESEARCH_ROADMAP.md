@@ -56,15 +56,9 @@ that had to be withdrawn.
 
 ## Pass conditions
 
-The **canonical** pass conditions for each gate live in this document, in the form they were
-originally written: thresholds, dates, and the status they were given at the time. They are
-not paraphrased here and they are not restated per gate directory — each
-`experiments/gate<N>/STATUS.md` points back to this file instead, so there is one copy to
-check and no second version to drift.
-
-> **Pending migration.** The original text of the Gate 0–6 conditions is item 2 of
-> `MIGRATION.md`. Until it is copied in verbatim, this section deliberately contains no
-> conditions: an invented threshold would be worse than an acknowledged gap.
+A gate's pass conditions are fixed in its own preregistration, before its first run, and
+are not restated here. This table tracks status; the criterion lives with the experiment that
+uses it.
 
 What a gate's pass condition is expected to consist of, once migrated — this is the shape,
 not the content:

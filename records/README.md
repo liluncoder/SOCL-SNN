@@ -3,9 +3,9 @@
 The evidence layer: what was preregistered, what was run, what was decided, and what went
 wrong. Everything in `experiments/` is setup; everything here is what actually happened.
 
-This is **layer 1** of the disclosure model in `docs/DISCLOSURE.md`: the audit trail that is
-published in full, so that a claim can be checked after the fact. It is not the raw work log
-— repeated dumps, scratch output and personal notes stay internal.
+This is the audit trail: what was asked, what was run, what was decided. It is written so
+that a claim can be checked after the fact, and it is kept small enough to stay readable —
+repeated dumps and scratch output belong in a run log, not here.
 
 Nothing in this directory is edited after the fact. A corrected reading is a new file that
 cites the old one.

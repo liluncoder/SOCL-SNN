@@ -34,9 +34,3 @@ protocols exist because a claim about a limit is only worth making if it can be 
 This project investigates whether particular mechanisms can carry particular information.
 It does not claim general intelligence, human-like cognition, or open-ended autonomous
 learning, and nothing here should be read as making that claim.
-
-## Canon version
-
-The canonical wording of this document (v2) is preserved verbatim in the private research
-archive and has **not** been paraphrased into this file. When migrated it replaces this
-text unchanged. See `MIGRATION.md`.

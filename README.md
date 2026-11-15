@@ -1,168 +1,189 @@
-#
-
 # SOCL-SNN
 
 **Self-Organizing Continual Learning in Spiking Neural Networks**
 
-SOCL-SNN is an independent research project investigating local learning, synaptic credit assignment, temporal information processing, and adaptive mechanisms in spiking neural networks.
+An independent research project investigating local learning, synaptic credit assignment,
+temporal information processing, and adaptive mechanisms in spiking neural networks.
 
-The project explores how neural systems can learn from experience through local mechanisms, maintain useful internal states, and potentially adapt their own computational structures over time.
+The project explores how a neural system can learn from experience through mechanisms that
+are **local** — that see only what a synapse or a cell can see — and what such mechanisms can
+and cannot carry.
 
-It is an ongoing experimental research project. It does not claim to have achieved general intelligence, human-like cognition, or open-ended autonomous learning.
+It is an ongoing experimental project. It does not claim general intelligence, human-like
+cognition, or open-ended autonomous learning, and its scope is deliberately limited by
+evidence, implementation maturity and available compute.
 
-## Research Motivation
+---
 
-Most conventional neural network experiments focus on learning a task under a fixed architecture and training procedure.
+## Vision
 
-This project investigates a different set of questions:
+The long-term target is a **persistent adaptive system**: one that keeps running, perceives,
+maintains internal state, remembers experience, acts, and can modify its own learning
+mechanisms over time. This is called PAA (Persistent Adaptive Agent) and it is a research
+vision, not an architecture that exists here.
 
-- What information can local learning mechanisms actually represent and transmit?
+The project's own goal is narrower and has to be met first:
 
-- How does credit assignment affect synaptic updates and observable behavior?
+> **What can a local learning mechanism actually represent, carry and change — and where does
+> that stop?**
 
-- How can temporal and spatial information be integrated?
+That question drives everything below. It is pursued through mathematical analysis and
+controlled computational experiments, in this order:
 
-- Can learning remain effective across successive experiences?
+- What information can a local mechanism represent and transmit?
+- Does credit assignment change synaptic updates *and* observable behaviour — two different
+  questions that are often conflated?
+- Can temporal and spatial information be integrated well enough to be read?
+- Does learning survive successive experiences?
+- Under what conditions can structure adapt without dismantling what works?
 
-- Under what conditions can network structure adapt without destabilizing learning?
+SNNs are the current substrate because they make time, locality and cost explicit. They are
+not an assumption that spiking computation is sufficient. See
+[`docs/VISION_PAA.md`](docs/VISION_PAA.md) and [`docs/NORTH_STAR.md`](docs/NORTH_STAR.md).
 
-These questions are investigated through mathematical analysis and controlled computational experiments.
+## Roadmap
 
-## Current Research
+Research is organised as a sequence of gates. A gate is a question that has to be decided
+before the next question is worth asking — not a milestone and not a code module.
 
-The research is organized into a staged roadmap:
+| Gate | Research focus | Status |
+| --- | --- | --- |
+| 0 | Establish a task with sufficient experimental headroom | Active |
+| 1 | Temporal and spatial integration | Planned |
+| 2 | Longitudinal measurement of learning improvement | Not started |
+| 3 | Cross-task integration and consolidation | Not started |
+| 4 | Synaptic and connection-level plasticity | Frozen |
+| 5 | Structural self-organization | Frozen |
+| 6 | Self-modeling and higher-level integration | Conceptual |
 
-| Stage  | Research focus                                         | Status      |
-| ------ | ------------------------------------------------------ | ----------- |
-| Gate 0 | Establish a task with sufficient experimental headroom | Active      |
-| Gate 1 | Temporal and spatial integration                       | Planned     |
-| Gate 2 | Longitudinal measurement of learning improvement       | Not started |
-| Gate 3 | Cross-task integration and consolidation               | Not started |
-| Gate 4 | Synaptic and connection-level plasticity               | Frozen      |
-| Gate 5 | Structural self-organization                           | Frozen      |
-| Gate 6 | Self-modeling and higher-level integration             | Conceptual  |
+A gate opens when the previous one has a **decision**, not when it has enough runs. Frozen and
+conceptual gates do not open because a directory exists; the status changes by decision record
+only. The table describes prerequisites and intended investigations, never completed
+capabilities. See [`docs/RESEARCH_ROADMAP.md`](docs/RESEARCH_ROADMAP.md).
 
-The roadmap describes research prerequisites and intended investigations, not completed capabilities.
+## What has been established
 
-See docs/RESEARCH_ROADMAP.md.
+Seven results that hold independently of whether the current task is solved. Each is a
+statement about what this class of mechanism can and cannot do, and each is checkable from
+source or from a recorded measurement.
 
-## Experimental Methodology
+1. **A scalar modulator cannot address synapses.** With one reward value per postsynaptic
+   cell, flipping its sign flips the entire update exactly — `dw(+1) = −dw(−1)` holds bitwise
+   at every event. The relative pattern over a cell's in-edges is unchanged, so the write
+   carries no direction among them.
 
-Experiments follow a preregistered decision process.
+2. **Plasticity is distributed by edge count, not by relevance.** A pathway holding 0.42% of
+   the synapses received 0.39% of the total weight change — proportional, with no preference
+   for the edges that carry the answer.
 
-The central principle is:
+3. **Opposite rewards produce nearly parallel writes.** Cosine similarity between the updates
+   for reward +1 and −1 is about **+0.42**, not −1.
 
-**Define the decision criteria before running an experiment, validate the measurement process, and append the resulting decision without rewriting the original criteria.**
+4. **A simplex weight budget forbids growth.** With per-cell budgets normalised on a simplex,
+   `Σdw ≡ 0` follows algebraically: weights can be reallocated, never added.
 
-The methodology includes:
+5. **Structure does not bootstrap itself under a fixed topology.** Gradient flow converges
+   inside the representable class, and no local criterion drives a change of topology.
+   Recorded as an open problem, not as a capability.
 
-1. Explicit hypotheses and experimental conditions.
+6. **The task saturates before a learning effect has room.** In the venue used at the time,
+   accuracy reached ≈0.94 at a 2× imbalance — the answer was carried by wiring, so there was
+   nothing left for learning to improve.
 
-2. Predefined measurements, thresholds, sample sizes, and minimum detectable effects.
+7. **A readout window can invert a result.** Scoring the same configuration after its response
+   had decayed returned the opposite answer: 0.03 versus 1.00 at two windows.
 
-3. Instrument validation and deliberate failure tests.
+Findings 1, 3 and 4 are the formal content of **Candidate 1** (representational limits of
+low-dimensional modulatory credit assignment); finding 2 is the measurement side of
+**Candidate 2** (sign reversals and edge-level decomposition of synaptic updates). The full
+register, with status and evidence type per entry, is in
+[`research/FINDINGS.md`](research/FINDINGS.md).
 
-4. Verification that interventions actually affect the system.
+## Bottlenecks
 
-5. One experimental variable changed at a time.
+Four constraints, in the order they bind. A result that ignores the first two is not
+interpretable, however large its effect.
 
-6. Paired, seed-level comparisons.
+**1. Credit has no dimension.** The update is a scalar multiple of the presynaptic trace, so
+every synapse on a cell moves in the same proportion — findings 1–3. Until this changes, no
+behavioural difference can be attributed to *learning* rather than to the wiring that was
+already there. What would clear it: a credit variable that is not a function of activity
+alone — timing-signed eligibility, per-branch eligibility, or a state-dependent reward.
 
-7. Four distinct outcomes: difference, equivalence, undecided, and void.
+**2. The task is solved by its own wiring.** The answer travels along a hand-wired pathway, so
+accuracy saturates before a mechanism has anything to add — finding 6. What would clear it: a
+venue where the mapping from cue to action is not already built in.
 
-8. Append-only experimental records and explicit applicability conditions.
+**3. Structure cannot pay for itself.** Under a simplex budget, connections can be
+reallocated but not created, and no local criterion currently rewards keeping one — findings
+4–5. This is why gates 4 and 5 are frozen rather than scheduled.
 
-A failed instrument or invalid experimental setup is not interpreted as evidence for or against a mechanism.
+**4. The instrument can invert a result.** A readout taken after the response has decayed can
+report the opposite of the truth — finding 7. There is no permanent fix; the check has to be
+run every time, which is why it is a protocol step and not a paragraph.
 
-See protocols/ for the detailed methodology.
-
-## Research Findings and Publications
-
-The project also investigates theoretical limits of learning mechanisms.
-
-Current research outputs include:
-
-- **Candidate 1:** Analysis of the representational limits of low-dimensional global modulatory credit assignment.
-
-- **Candidate 2:** Investigation of sign reversals and edge-level synaptic update decomposition.
-
-These are research manuscripts and candidate research directions. Their claims should be interpreted according to the evidence and limitations stated in the corresponding documents.
-
-See research/papers/.
+The first two are why nothing has demonstrably learned yet. The third is why the roadmap does
+not skip ahead. The fourth is why no number here is trusted twice without a check.
 
 ## Repository Organization
 
-| Directory      | Purpose                                                      |
-| -------------- | ------------------------------------------------------------ |
-| `docs/`        | Research goals, roadmap, principles, and long-term vision    |
-| `protocols/`   | Preregistration, measurement, validation, and decision rules |
-| `research/`    | Theoretical analysis and manuscripts                         |
-| `experiments/` | Experiment implementations organized by research stage       |
-| `records/`     | Preregistrations, manifests, diagnostics, and decisions      |
-| `legacy/`      | Earlier experimental prototypes preserved for reference      |
-| `tests/`       | Instrument, unit, and regression tests                       |
-| `tools/`       | Supporting utilities                                         |
-| `results/`     | Curated result summaries                                     |
+| Directory | Purpose |
+| --- | --- |
+| [`docs/`](docs/) | Goals, roadmap, principles, architecture, long-term vision |
+| [`protocols/`](protocols/) | Preregistration, measurement, validation, decision rules |
+| [`research/`](research/) | Findings register, theoretical analysis, manuscripts |
+| [`experiments/`](experiments/) | Experiment setup organised by research stage |
+| [`records/`](records/) | Preregistrations, manifests, diagnostics, decisions |
+| [`legacy/`](legacy/) | Earlier prototype, preserved and still runnable |
+| [`tests/`](tests/) | Unit, instrument and regression tests |
+| [`tools/`](tools/) | Supporting utilities |
+| [`results/`](results/) | Curated result summaries |
 
-What is published, and what is deliberately withheld, is governed by
-[docs/DISCLOSURE.md](docs/DISCLOSURE.md). The short version: the evidence chain is published
-in full — preregistrations, decisions, key diagnostics, failure reasons — while raw work logs
-are not. A test decides which is which: can an outsider, from the public material alone,
-understand why the experiment was designed that way, judge whether the measurement is
-trustworthy, check that the intervention took effect, and reproduce the core result?
+Each experiment is recorded as a question, a preregistered criterion, a configuration, a
+result and a decision. A record is complete when someone who was not involved can follow it
+end to end: why it was designed that way, whether the measurement can be trusted, whether the
+intervention took effect, and how the result was computed.
 
 ## Legacy Prototype
 
-Earlier development included a sequential prototype exploring:
+Earlier development produced a sequential five-stage prototype: energy-constrained spiking
+networks, working memory, memory-driven action, reward-modulated learning, and structural
+development. It runs on NumPy alone, at roughly ten seconds of wall clock per simulated
+second for 2500 cells.
 
-- Energy-constrained spiking networks
+It is preserved because several of the findings above were measured against it, and a
+baseline that cannot be re-run is not a baseline. It is not the current gate structure. See
+[`legacy/pipeline_v1/README.md`](legacy/pipeline_v1/README.md).
 
-- Working memory
+## Methodology
 
-- Memory-driven action
+Experiments follow a preregistered decision process. The central rule:
 
-- Reward-modulated learning
+> **Define the decision criteria before running, validate the measurement, and append the
+> resulting decision without rewriting the original criteria.**
 
-- Adaptive network structures
+In practice:
 
-These earlier experiments are preserved as historical research artifacts. They should not be confused with the current Gate-based research roadmap.
+1. Explicit hypothesis and experimental conditions.
+2. Predefined measurement, threshold, sample size and minimum detectable effect.
+3. Instrument validation — the measurement is made to fail on purpose before it is trusted.
+4. Verification that the intervention reached the system, by weight fingerprint rather than
+   assumption.
+5. One experimental variable changed at a time.
+6. Paired, seed-level comparison; effect quoted against seed noise.
+7. Four outcomes: difference, equivalence, undecided, void.
+8. Append-only records with explicit applicability conditions.
 
-## Long-Term Vision
+A broken instrument or an invalid setup is interpreted as **neither** evidence for nor against
+a mechanism. Undecided is reported as undecided; "the design could not detect it" is not "it
+is not there".
 
-The long-term motivation is to investigate persistent adaptive computational systems that can perceive, maintain internal models, remember experience, act, and modify their own learning mechanisms.
+Underlying principles: mathematical definitions before biological analogies; falsifiable
+hypotheses before experiments; measurement validation before interpretation; preregistered
+criteria before execution; reproducibility before performance claims; negative, undecided and
+invalid results kept distinct; historical records preserved rather than silently rewritten.
 
-PAA (Persistent Adaptive Agent) is a conceptual research direction for organizing these capabilities.
-
-SNNs are the current research substrate, not an assumption that spiking neural networks alone are sufficient for general intelligence. Alternative or hybrid computational substrates may be considered as evidence develops.
-
-PAA is a research vision, not an implemented or validated AGI architecture.
-
-See docs/VISION_PAA.md.
-
-## Research Principles
-
-- Mathematical definitions before biological analogies.
-
-- Falsifiable hypotheses before experiments.
-
-- Measurement validation before interpretation.
-
-- Preregistered criteria before execution.
-
-- Reproducibility before performance claims.
-
-- Explicit distinction between negative, undecided, and invalid results.
-
-- Historical records are preserved rather than silently rewritten.
-
-## Reproducibility
-
-Each experiment should document its configuration, random seeds, code version, measurement definitions, instrument checks, analysis procedure, and final decision.
-
-See individual experiment records for the exact conditions under which a result was obtained.
-
-## Scope
-
-SOCL-SNN is an independent, evolving research project. Its current scope is deliberately limited by experimental evidence, implementation maturity, and available computational resources.
-
-The immediate objective is not to claim general intelligence, but to establish reliable and increasingly capable mechanisms through controlled, reproducible research.
+Every result is documented with its configuration, seeds, code version, measurement
+definitions, instrument checks and final decision. See [`protocols/`](protocols/) for the full
+protocol and [`docs/RESEARCH_PRINCIPLES.md`](docs/RESEARCH_PRINCIPLES.md) for the reasoning
+behind each rule.

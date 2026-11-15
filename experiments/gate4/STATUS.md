@@ -19,4 +19,5 @@ A new decision record in `records/decisions/` that states the question, the crit
 the launching conditions, and that explicitly references the freeze it is lifting. A
 roadmap edit alone does not reopen a gate.
 
-See `MIGRATION.md` for the artifacts that must be migrated verbatim rather than rewritten.
+The freeze and its reasons are recorded as a decision. Restructuring this repository does
+not reopen, revise or annotate it.

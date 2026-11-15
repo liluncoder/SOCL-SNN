@@ -12,6 +12,5 @@ definition that can be falsified.
 
 ## Note
 
-The stage-3 launch conditions are part of the decision history that must be preserved
-verbatim when migrated. Do not paraphrase them into a roadmap sentence; the original
-wording is the record. See `MIGRATION.md`.
+Launch conditions are recorded as a decision, not as a roadmap sentence. When this gate
+opens, its criterion is written first and cited afterwards.
