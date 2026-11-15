@@ -63,7 +63,7 @@ capabilities. See [`docs/RESEARCH_ROADMAP.md`](docs/RESEARCH_ROADMAP.md).
 
 ## What has been established
 
-Seven results that hold independently of whether the current task is solved. Each is a
+These results hold independently of whether the current task is solved. Each is a
 statement about what this class of mechanism can and cannot do, and each is checkable from
 source or from a recorded measurement.
 
@@ -92,6 +92,13 @@ source or from a recorded measurement.
 
 7. **A readout window can invert a result.** Scoring the same configuration after its response
    had decayed returned the opposite answer: 0.03 versus 1.00 at two windows.
+
+8. **The rule has no timing window.** An edge receives two independent terms, each evaluated at
+   its own event: `+A₊·x_pre` when the postsynaptic cell spikes, `−A₋·y_post` when the
+   presynaptic cell spikes. Their sum is unchanged when the two events are swapped — measured
+   difference exactly zero. So per-edge credit reduces to `R·(A₊·x_pre − A₋·y_post)`: a
+   comparison of rates, with no dependence on which came first. This is why "which input caused
+   this spike" is not representable, and why adding traces cannot produce direction.
 
 Findings 1, 3 and 4 are the formal content of **Candidate 1** (representational limits of
 low-dimensional modulatory credit assignment); finding 2 is the measurement side of

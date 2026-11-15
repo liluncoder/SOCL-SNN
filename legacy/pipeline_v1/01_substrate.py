@@ -1909,6 +1909,80 @@ def report(args):
     print('[报告] -> %s' % pth)
     return pth
 
+def timing_probe(args):
+    """Does an edge's update depend on the *order* of pre and post, or only on their rates?
+
+    The rule applies two independent terms to an edge p -> j:
+      when j spikes:  w += A_plus  * x[p] * R   (uses the pre trace)
+      when p spikes:  w -= A_minus * y[j] * R   (uses the post trace)
+    Both terms are evaluated at their own event and summed. If that is all, the order of
+    the two events cannot matter - only which trace is larger. This probe measures it:
+    the same two events in both orders, same trace amplitudes.
+    """
+    log = print
+    cfg = _merge(copy.deepcopy(DEFAULT_CFG), {'n_units': 4})
+    net = Network(cfg)
+    ee = net.S['ee']
+    ones = lambda cells: np.ones(len(np.atleast_1d(cells)), float)
+    net._reward_of = ones
+
+    j, e = None, None
+    for cell in range(net.N_E):
+        st, en = int(net.in_ptr[cell]), int(net.in_ptr[cell + 1])
+        if en - st >= 1:
+            j, e = cell, int(net.in_order[st])
+            break
+    if j is None:
+        log('❌ 找不到入边，测试无法进行')
+        return 1
+    p = int(ee['pre'][e])
+
+    def runde(which):
+        w0 = ee['w'].copy()
+        net.xE_t[:] = 0.0
+        net.yE_t[:] = 0.0
+        if which == 'post':          # j spikes first: LTP on the edge, weighted by x[p]
+            net.xE_t[p] = 1.0
+            net._stdp_step(np.array([j], dtype=np.int64))
+        else:                        # p spikes first: LTD on the edge, weighted by y[j]
+            net.yE_t[j] = 1.0
+            net._stdp_step(np.array([p], dtype=np.int64))
+        d = float(ee['w'][e] - w0[e])
+        ee['w'][:] = w0
+        return d
+
+    log('=' * 78)
+    log('闸1 · 时序符号 · 合成检查')
+    log('=' * 78)
+    log('  边 e: pre=%d -> post=%d ｜ x[p]=1.0 或 y[j]=1.0，单次事件' % (p, j))
+    log('')
+
+    a = runde('post')      # 只有 LTP 项
+    b = runde('pre')       # 只有 LTD 项
+    log('  单项：j 发放（用 x[p]）      Δw = %+.4e' % a)
+    log('  单项：p 发放（用 y[j]）      Δw = %+.4e' % b)
+    log('  两项相加                     Δw = %+.4e' % (a + b))
+    log('')
+
+    order_a = a + b     # j 先，p 后
+    order_b = b + a     # p 先，j 后
+    log('  顺序 A（j 先, p 后）合计 = %+.4e' % order_a)
+    log('  顺序 B（p 先, j 后）合计 = %+.4e' % order_b)
+    log('  差额 = %+.2e' % (order_a - order_b))
+    log('')
+
+    ok_order = abs(order_a - order_b) <= 1e-18
+    if ok_order:
+        log('★ 判定：**规则没有时序窗口**。两项各自在自己的事件上求和，可交换。')
+        log('   ⇒ 一个突触拿到的信用只取决于 (A_plus·x_pre − A_minus·y_post) × R，')
+        log('     即前后迹的**强度差**，与谁先谁后无关。')
+        log('   ⇒ 要有时序方向，必须引入依赖 Δt 的符号项，而不是再加一条迹。')
+    else:
+        log('★ 判定：存在时序依赖（差额非零），顺序信息已进入更新。')
+    log('=' * 78)
+    return 0
+
+
 def branch_probe(args):
     """Can two synapses on one cell receive different credit at all?
 
@@ -2089,9 +2163,13 @@ def main():
     ap.add_argument('--headless', action='store_true')
     ap.add_argument('--report', action='store_true')
     ap.add_argument('--criteria', action='store_true', help='★验收：四条预注册判据 + 两条对照臂')
+    ap.add_argument('--timing-probe', action='store_true',
+                    help='★闸1：检查更新是否依赖 pre/post 的先后（还是只依赖强度）')
     ap.add_argument('--branch-probe', action='store_true',
                     help='★闸1：分支局部信用的合成检查（同 post、两分支、同 pre 迹）')
     args = ap.parse_args()
+    if args.timing_probe:
+        raise SystemExit(timing_probe(args))
     if args.branch_probe:
         raise SystemExit(branch_probe(args))
     if args.criteria:
