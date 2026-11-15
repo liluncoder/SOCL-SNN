@@ -68,7 +68,7 @@ DEFAULT_CFG = {
 
     # gate-1: pair-based eligibility. One trace per edge, incremented by one cell's spike
     # and spent by the other's, so the order of the two events decides the sign.
-    'pair': {'on': False, 'tau': 20.0},
+    'pair': {'on': False, 'tau': 20.0, 'spend': True},
 
     'syn': {
         'on': True,
@@ -509,6 +509,7 @@ class Network:
 
         pr = c.get('pair', {})
         self.pair_on = bool(pr.get('on', False))
+        self.pair_spend = bool(pr.get('spend', True))
         if self.pair_on:
             # one eligibility per synapse, for potentiation and for depression
             self.e_ltp = np.zeros(pre.size, np.float64)
@@ -1063,6 +1064,9 @@ class Network:
             wi_out = np.zeros(0, np.int64)
             Rj = np.zeros(0)
 
+        # depression acts on the spiking cell's outgoing edges, the same edge set the
+        # trace-product rule used; what differs is the weight (spent eligibility vs trace)
+        cnt_dep = ee['indptr'][spk + 1] - ee['indptr'][spk]
         e_l = self.e_ltp[wi_in].copy() if wi_in.size else None
         e_d = self.e_ltd[wi_out].copy() if wi_out.size else None
 
@@ -1070,12 +1074,14 @@ class Network:
             if self.br_on:
                 e_l = e_l * self._br_fac(np.repeat(spk, self.in_ptr[spk + 1] - self.in_ptr[spk]), wi_in)
             w[wi_in] += c['A_plus'] * e_l * Ri
-            self.e_ltp[wi_in] = 0.0
+            if self.pair_spend:
+                self.e_ltp[wi_in] = 0.0
         if wi_out.size:
             if self.br_on:
                 e_d = e_d * self._br_fac(ee['post'][wi_out], wi_out)
             w[wi_out] -= c['A_minus'] * e_d * Rj
-            self.e_ltd[wi_out] = 0.0
+            if self.pair_spend:
+                self.e_ltd[wi_out] = 0.0
 
         # a spike arms the opposite trace on the edges it can pair with later
         if wi_out.size:

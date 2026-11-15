@@ -108,11 +108,13 @@ source or from a recorded measurement.
    seeds, t = 4.6 at ten; 8 of 10 seeds positive), which clears the design's minimum detectable
    effect.
 
-   Two controls constrain the explanation. Shrinking the eligibility window twentyfold leaves
-   the effect unchanged, and scaling the learning rate down by 6× to match the old rule's total
-   write leaves it at +0.167. So the gain is neither a window artefact nor a step-size artefact.
-   What remains different between the two rules is *which* edges are depressed and the one-shot
-   reset — that is the open question, stated in `research/FINDINGS.md`.
+   Four variants constrain the explanation: a twentyfold shorter eligibility window (0.713 vs
+   0.713), a 6× smaller step size matched to the old rule's total write (0.704), and leaving the
+   eligibility to decay instead of resetting it after use (0.719). None of them moves the result.
+   What the pair rule has and the trace-product rule lacks is that an edge's update depends on
+   the *joint* history of its two cells rather than on the product of two cell-level rates —
+   which is exactly what makes the old rule factor into one number per presynaptic cell. Testing
+   that directly is the open item in `research/FINDINGS.md`.
 
 Findings 1, 3 and 4 are the formal content of **Candidate 1** (representational limits of
 low-dimensional modulatory credit assignment); finding 2 is the measurement side of
