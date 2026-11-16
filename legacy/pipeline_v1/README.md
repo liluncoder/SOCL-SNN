@@ -53,6 +53,23 @@ python 05_prototype.py --rounds 12                 # ~13 s
 python 05_prototype.py --rounds 320 --mod-dim      # ~9 min
 ```
 
+The stage-04 windows and the credit mode are chosen by the caller, not by the CLI. Always pass
+`win_t0=20, win_t1=70` (the default 60–160 reads the response tail and inverts the answer) and
+choose `credit_at` explicitly:
+
+```python
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("t", "04_task_environment.py")
+t = importlib.util.module_from_spec(spec); sys.modules["t"] = t; spec.loader.exec_module(t)
+net = t.build(seed=411, arm="local", w_p8=0.01, n_trial=12,
+              win_t0=20.0, win_t1=70.0, credit_at="decision")
+t._run(net, 200.0 * 12 * 8 + 50.0)
+print(net.acc_probe(), net.dw_abs_cum)
+```
+
+`credit_at='event'` is the historical behaviour and is kept for reproducibility;
+`'decision'` is the rule actually described as three-factor (see trap 10).
+
 Cost: one simulated second costs roughly 3–4 s of wall clock. Stage 05 costs about 1 s per
 200 ms round.
 
@@ -96,6 +113,23 @@ Verified against the source; each one produces a number that looks fine.
 
 9. **Do not add a plotting import at module level.** Importing stage 05 imports stage 01;
    a module-level `import matplotlib` would become a hard dependency of the whole chain.
+
+10. **The reward a synapse sees is the previous trial's.** `_stdp_step` reads `_reward_of()`
+   at the moment of each spike, but `_write_reward()` runs inside `_decide()`, at `win_t1` —
+   after the stimulus window. So the events that decide a trial are scaled by the outcome of
+   the trial before it, and the events that follow the decision are scaled by the outcome they
+   did not cause. Measured at this venue: 42.5% of answer-pathway spikes precede the write.
+   `task_off` is not a null learning arm for the same reason: it does not write a reward, but
+   `_reward_of()` still returns the natural energy field, so it learns too. `credit.at='decision'`
+   fixes the delivery (per-edge eligibility, applied at the decision); with it, `task_off` is
+   exactly frozen.
+
+11. **The default reward frame is saturated at the answer cells.** `eng_scale_scope='global'`
+   normalises by the median and IQR of all 2500 cells, and the 16 answer cells sit far above
+   that median. The write sets the winner to `median + s·r*·scale` (reads back exactly `+0.5`)
+   while the untreated group stays clipped at `+1.0` — the winner is rewarded *less* than the
+   loser. Measured over 23 rounds: the intended sign holds in 4/23, mean −0.040. With
+   `eng_scale_scope='act'` it is 17/23 and +0.204.
 
 ## Extending it
 

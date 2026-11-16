@@ -100,24 +100,34 @@ source or from a recorded measurement.
    comparison of rates, with no dependence on which came first. This is why "which input caused
    this spike" is not representable, and why adding traces cannot produce direction.
 
-9. **Credit measurement needs a venue that does not supply the answer.** Give each synapse one
-   eligibility, armed by one cell's spike and spent by the other's, and the order decides the
-   sign: the same edge moves `+0.010` when the presynaptic cell fired first and `−0.011` when
-   the postsynaptic cell did, with an unpaired event leaving it untouched. In the task venue
-   this raises accuracy from 0.537 to 0.713 — a paired effect of **+0.175** (t = 2.9 at five
-   seeds, t = 4.6 at ten; 8 of 10 seeds positive), which clears the design's minimum detectable
-   effect.
+9. **Order-sensitive eligibility is representable — but not yet shown to help.** Give each
+   synapse one eligibility, armed by one cell's spike and spent by the other's, and the order
+   decides the sign: the same edge moves `+0.010` when the presynaptic cell fired first and
+   `−0.011` when the postsynaptic cell did, with an unpaired event leaving it untouched. In the
+   task venue this first read as a paired effect of +0.175 (8 of 10 seeds positive), and it does
+   not survive its controls: accuracy there is monotone in how much weight the hand-wired answer
+   pathway receives, so the effect is a write-volume effect. Random assignment beats correct
+   assignment; multiplying the old rule's gain by four beats both. The mechanism is
+   **representable**; whether it is **useful** is unproven, and the comparison that would have
+   shown it is void — see 10.
 
-   A first reading of this measured +0.173 (t = 4.55 over ten seeds) against the trace-product
-   rule and looked like a mechanism result. It is not one. Accuracy at this venue turns out to be
-   monotone in how much weight the hand-wired answer pathway receives — 0.535 at a carrier write
-   of 2.0, 0.704 at 4.1, 0.708 at 11.2, 0.865 at 23.9 with the credit shuffled across edges, and
-   0.826 at 49 by simply multiplying the old rule's gain by four. Random assignment beats correct
-   assignment; a blanket gain increase beats the mechanism.
+10. **The third factor never reaches the event that earned it.** The rule reads the reward at
+    the moment of each spike, while the outcome of a trial is written only at the decision, which
+    runs after the stimulus window. Measured: **42.5%** of the answer-pathway spikes happen
+    before the write and therefore carry the *previous* trial's outcome; the other 57.5% happen
+    after the readout that scored them. On top of that, under the default energy frame the
+    delivered value is not merely noisy but **inverted** — the previous winner group has the
+    larger reward in 4 of 23 rounds (mean −0.040), because the write leaves the treated group at
+    `+0.5` while the untreated group saturates at `+1.0`.
 
-   The conclusion is about the instrument, not the mechanism: while the wiring supplies the
-   answer, more plasticity on that wiring is indistinguishable from better credit. The venue has
-   to make the correct edge depend on the trial before this question can be asked.
+11. **Reading the reward at the decision restores delivery, and only delivery.** A per-edge
+    eligibility is now accumulated during the round and multiplied by the outcome when the
+    outcome is known (`credit.at='decision'`). The credit lands on the chosen group and on
+    nothing else (weight change outside it exactly zero), probe rounds and the null arm write
+    exactly nothing, and with the switch off the weight fingerprint is unchanged. The update is
+    still `R_j · e_ij` — one scalar per cell times one eligibility per edge — so the
+    representational findings above (1, 3, 8) stand untouched. What changed is *when* the
+    scalar is read, not what it can express.
 
 Findings 1, 3 and 4 are the formal content of **Candidate 1** (representational limits of
 low-dimensional modulatory credit assignment); finding 2 is the measurement side of
@@ -127,29 +137,39 @@ register, with status and evidence type per entry, is in
 
 ## Bottlenecks
 
-Four constraints, in the order they bind. A result that ignores the first two is not
+Five constraints, in the order they bind. A result that ignores the first three is not
 interpretable, however large its effect.
 
-**1. Credit has no dimension.** The update is a scalar multiple of the presynaptic trace, so
+**1. The third factor arrives from the wrong trial.** The rule multiplies each event by the
+reward available at that event, and the outcome of a trial is written only at its decision —
+after the stimulus window. So 42.5% of the answer-pathway events are scaled by the previous
+trial's outcome, and the rest happen after the readout that scored them — findings 10–11.
+What would clear it: an eligibility that outlives the event and receives the outcome when the
+outcome is known. **This is now implemented and validated**; it removes the obstacle but not
+the next one.
+
+**2. Credit has no dimension.** The update is a scalar multiple of the presynaptic trace, so
 every synapse on a cell moves in the same proportion — findings 1–3. Until this changes, no
 behavioural difference can be attributed to *learning* rather than to the wiring that was
 already there. What would clear it: a credit variable that is not a function of activity
 alone — timing-signed eligibility, per-branch eligibility, or a state-dependent reward.
 
-**2. The task is solved by its own wiring.** The answer travels along a hand-wired pathway, so
+**3. The task is solved by its own wiring.** The answer travels along a hand-wired pathway, so
 accuracy saturates before a mechanism has anything to add — finding 6. What would clear it: a
-venue where the mapping from cue to action is not already built in.
+venue where the mapping from cue to action is not already built in, and where the correct edge
+depends on the trial.
 
-**3. Structure cannot pay for itself.** Under a simplex budget, connections can be
+**4. Structure cannot pay for itself.** Under a simplex budget, connections can be
 reallocated but not created, and no local criterion currently rewards keeping one — findings
 4–5. This is why gates 4 and 5 are frozen rather than scheduled.
 
-**4. The instrument can invert a result.** A readout taken after the response has decayed can
+**5. The instrument can invert a result.** A readout taken after the response has decayed can
 report the opposite of the truth — finding 7. There is no permanent fix; the check has to be
 run every time, which is why it is a protocol step and not a paragraph.
 
-The first two are why nothing has demonstrably learned yet. The third is why the roadmap does
-not skip ahead. The fourth is why no number here is trusted twice without a check.
+The first two are why nothing has demonstrably learned yet: the first is now repaired, and the
+second is why repairing it was not enough. The third is why the roadmap does not skip ahead.
+The fourth is why no number here is trusted twice without a check.
 
 ## Repository Organization
 

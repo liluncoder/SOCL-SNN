@@ -356,6 +356,9 @@ class TaskNet(m2.ActNet):
         k = self._r_idx % (N_LEARN + N_PROBE)
         self._phase = 'learn' if k < N_LEARN else 'probe'
         self._reset_choice_state()
+        # a trial's eligibility must start empty, so the credit applied at the decision
+        # covers this round's events and nothing from the previous round's tail
+        self.reset_eligibility()
 
         if self._dms <= 0:
             self._safe = 0 if (self._rng_safe.random() < self.p_safe) else 1
@@ -467,6 +470,18 @@ class TaskNet(m2.ActNet):
                     '★D1‴ 断言失败：R(winner) 偏离 s·r* 超过 %g（arm=%s, err=%.3e）' % (
                         WRITE_ERR_TOL, self.arm011, self.write_err_max)
 
+        # decision-time credit: the third factor is applied now, to the eligibility this
+        # round accumulated, instead of at each event (where the value available belongs
+        # to the previous round). The reward is one number per chosen cell, so the update
+        # is still a per-cell scalar times a per-edge eligibility.
+        self._round_credit = 0.0
+        if self.credit_at == 'decision':
+            _Rv = np.zeros(self.N_E)
+            if (self._phase == 'learn' and self.arm011 == 'local'
+                    and self._credit_mode != 'oracle'):
+                _Rv[self.ACT[winner]] = float(s) * self.r_star
+            self._round_credit = float(self.apply_credit(_Rv))
+
         _g16 = np.concatenate([self.ACT[0], self.ACT[1]])
         _al = np.asarray(self.aliveE, bool)
         _m16 = _al[_g16]
@@ -520,6 +535,8 @@ class TaskNet(m2.ActNet):
                                  n_top_all=n_top_all,
 
                                  nspk_cum=float(np.sum(self.n_spkE)),
+                                 credit_at=str(self.credit_at),
+                                 round_credit=float(getattr(self, '_round_credit', 0.0)),
                                  dw_round=None)
 
         if self._readout_mode == 'gea':
@@ -628,7 +645,7 @@ class TaskNet(m2.ActNet):
 def task_cfg(seed=51, trace=False, norm_on=None, win_t0=WIN_T0, win_t1=WIN_T1,
              eng_scale_mode='legacy', eng_scale_scope='global', eng_outlet=None,
              branch_on=False, branch_n=None, pair_on=False, pair_tau=None,
-             pair_spend=True, pair_scope='pair'):
+             pair_spend=True, pair_scope='pair', credit_at='event'):
     c = m2.m2_cfg(False)
     c['dev'] = {'on': True, 'energy_only': True,
                 'eng_scale_mode': str(eng_scale_mode),
@@ -655,11 +672,14 @@ def task_cfg(seed=51, trace=False, norm_on=None, win_t0=WIN_T0, win_t1=WIN_T1,
         c['pair']['tau'] = float(pair_tau)
     c['pair']['spend'] = bool(pair_spend)
     c['pair']['scope'] = str(pair_scope)
+    # when the third factor is read; 'event' reproduces the historical rule exactly
+    c['credit'] = dict(c.get('credit', {}))
+    c['credit']['at'] = str(credit_at)
     return c
 
 def build(seed=51, arm='task_off', w_stim=W_STIM0, w_p8=W_P8_0, r_star=R_STAR0,
           branch_on=False, branch_n=None, pair_on=False, pair_tau=None,
-          pair_spend=True, pair_scope='pair',
+          pair_spend=True, pair_scope='pair', credit_at='event',
           p_safe=0.5, use_marker=True, n_trial=N_TRIAL, round_ms=ROUND_MS, trace=False,
           choice_mode=CHOICE_MODE0, win_t0=WIN_T0, win_t1=WIN_T1, eng_scale_mode='legacy',
           eng_scale_scope='global', eng_outlet=None, newpath_w=0.0, marker_kill=False,
@@ -671,7 +691,7 @@ def build(seed=51, arm='task_off', w_stim=W_STIM0, w_p8=W_P8_0, r_star=R_STAR0,
                    eng_scale_mode=eng_scale_mode, eng_scale_scope=eng_scale_scope,
                    eng_outlet=eng_outlet, branch_on=branch_on, branch_n=branch_n,
                    pair_on=pair_on, pair_tau=pair_tau, pair_spend=pair_spend,
-                   pair_scope=pair_scope)
+                   pair_scope=pair_scope, credit_at=credit_at)
     cfg['_p8_w'] = float(w_p8)
     cfg['_newpath_w'] = float(newpath_w)
     cfg['_marker_kill'] = bool(marker_kill)

@@ -70,6 +70,15 @@ DEFAULT_CFG = {
     # and spent by the other's, so the order of the two events decides the sign.
     'pair': {'on': False, 'tau': 20.0, 'spend': True, 'scope': 'pair'},
 
+    # When the third factor is read, relative to the events it multiplies.
+    #   'event'    - at the event, from the energy field (historical behaviour)
+    #   'decision' - an eligibility per edge accumulates during the round and the reward
+    #                is applied to it when the outcome is known
+    # The second is what makes the rule three-factor at all: with 'event' the reward a
+    # synapse sees belongs to the previous trial, because every stimulus-driven spike
+    # happens before the decision that scores it.
+    'credit': {'at': 'event'},
+
     'syn': {
         'on': True,
 
@@ -219,6 +228,16 @@ class Network:
         self.trace_on = bool(c.get('trace', True))
         self.bin_steps = max(1, int(round(float(c['bin_ms']) / self.dt)))
         self.bin_ms = self.bin_steps * self.dt
+        self.credit_at = str(c.get('credit', {}).get('at', 'event'))
+        assert self.credit_at in ('event', 'decision'), \
+            '★未知 credit.at=%r（只支持 event / decision）' % self.credit_at
+        if self.credit_at == 'decision':
+            # the two eligibility paths would both claim the update; pick one
+            assert not c.get('pair', {}).get('on', False), \
+                '★credit.at=decision 与 pair.on 不能同时开（两条资格迹路径互斥）'
+            assert not c.get('branch', {}).get('on', False), \
+                '★credit.at=decision 尚未实现分支因子；不要同时开 branch.on'
+        self.credit_applied = 0.0
         self.budget = float(c['dev']['budget_per_unit']) * self.nU
         self.extra_I = None
         self.eng_med = 0.0
@@ -488,6 +507,10 @@ class Network:
             'ii': _pack(pre_ii, post_ii, np.full(pre_ii.size, w['ii']), self.N_I, self.N_I),
         }
         self.w_local = w
+
+        # per-edge eligibility for decision-time credit; untouched unless asked for
+        self.eE = (np.zeros(int(self.S['ee']['n_syn']), np.float64)
+                   if self.credit_at == 'decision' else None)
 
         pre, post = self.S['ee']['pre'], self.S['ee']['post']
         dist = np.abs(pre // nE - post // nE).astype(np.float32)
@@ -1133,6 +1156,68 @@ class Network:
 
         np.clip(w, c['w_min'], self.w_max if hasattr(self, 'w_max') else self._w_hi(), out=w)
 
+    def _elig_step(self, spk):
+        """Accumulate eligibility instead of multiplying by a reward right away.
+
+        This is the same two terms the event-time rule evaluates — depression on the
+        spiking cell's incoming edges weighted by the postsynaptic trace, potentiation on
+        its outgoing edges weighted by the presynaptic trace — but the third factor is
+        withheld. It is applied later, by `apply_credit`, at the moment the outcome of
+        the trial is known. Nothing about *which* edge gets how much changes; only *when*
+        the reward multiplies it.
+        """
+        c = self.syn_cfg
+        ee = self.S['ee']
+        x, y = self.xE_t, self.yE_t
+        e = self.eE
+        if e is None:
+            raise RuntimeError('★credit.at=decision 但 eE 未分配')
+
+        st = ee['indptr'][spk]
+        cnt = ee['indptr'][spk + 1] - st
+        tot = int(cnt.sum())
+        if tot:
+            off = np.arange(tot) - np.repeat(np.cumsum(cnt) - cnt, cnt)
+            wi = np.repeat(st, cnt) + off
+            e[wi] -= c['A_minus'] * y[ee['post'][wi]]
+
+        st = self.in_ptr[spk]
+        cnt = self.in_ptr[spk + 1] - st
+        tot = int(cnt.sum())
+        if tot:
+            off = np.arange(tot) - np.repeat(np.cumsum(cnt) - cnt, cnt)
+            li = np.repeat(st, cnt) + off
+            wi = self.in_order[li]
+            e[wi] += c['A_plus'] * x[ee['pre'][wi]]
+
+        x[spk] += 1.0
+        y[spk] += 1.0
+
+    def reset_eligibility(self):
+        if self.eE is not None:
+            self.eE[:] = 0.0
+
+    def apply_credit(self, R_cells):
+        """Apply the third factor to the eligibility accumulated since the last reset.
+
+        `R_cells` is one reward per cell; an edge is scaled by the reward of its
+        postsynaptic cell, exactly as in the event-time rule. The update is therefore
+        still `dw_ij = R_j * e_ij`: a scalar per cell, so the argument that a scalar
+        modulator cannot address synapses among themselves is untouched.
+        """
+        if self.eE is None:
+            raise RuntimeError('★credit.at=decision 但 eE 未分配')
+        ee = self.S['ee']
+        c = self.syn_cfg
+        R = np.asarray(R_cells, np.float64)[ee['post']]
+        d = R * self.eE
+        total = float(np.abs(d).sum())
+        ee['w'] += d
+        np.clip(ee['w'], c['w_min'], self._w_hi(), out=ee['w'])
+        self.reset_eligibility()
+        self.credit_applied += total
+        return total
+
     def _stdp_step(self, spk):
         c = self.syn_cfg
         ee = self.S['ee']
@@ -1147,6 +1232,10 @@ class Network:
 
         if self.pair_on:
             self._pair_step(spk)
+            return
+
+        if self.credit_at == 'decision':
+            self._elig_step(spk)
             return
 
         st = ee['indptr'][spk]

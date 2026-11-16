@@ -34,7 +34,23 @@ outcome.
 
 ## Current state
 
-The gate is open, and its criterion is not yet satisfied: the task's label does not depend
-on the input in a way that leaves room for a learned improvement, and the baseline is
-already high. Both are properties of the task, not of the learning rule. That is what this
-gate exists to fix — see `docs/RESEARCH_ROADMAP.md` §Gate 0.
+The gate is open and its criterion is **not** satisfied, for two different reasons that were
+previously conflated:
+
+1. **The task does not leave room for a learned improvement.** Its label travels along a
+   hand-wired pathway, so the baseline is set by the wiring strength rather than by learning —
+   see the recorded dose–response and `research/FINDINGS.md` entry 10.
+2. **Until r81 the instrument could not deliver a trial's outcome to that trial's events.**
+   The rule reads the reward at each spike; the outcome is written at the decision, after the
+   stimulus window. Measured: 42.5% of answer-pathway events carry the previous trial's
+   outcome, and under the default energy frame the delivered value is inverted (4 of 23 rounds
+   in the intended direction). Every arm comparison in the record that relied on
+   `arm='local'` is **void as an instrument** because of this, not undecided.
+
+The second is now repaired and validated (`credit.at='decision'`; see
+`code/credit_delivery_check.py`). The first is not: the venue still has to make the correct
+edge depend on the trial.
+
+`GATE0_CANDIDATE_DECISION.md` records the audit, the new candidate venue (D: target is the
+conjunction of a cue and an instruction, with the conjunction provided as infrastructure and
+only eight outgoing edges plastic, starting in exact ties), and what is still undecided.

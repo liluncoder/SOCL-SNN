@@ -46,6 +46,12 @@ The pipeline is **archived**, not current: it is preserved because its behaviour
 baseline several gate decisions were made against, not because new work should be added to
 it. New experiments belong in `experiments/gate<N>/code/`.
 
+One exception, by precedent: a **switch that must stay bitwise comparable to the historical
+behaviour** is added in place, default off, with a fingerprint check proving inertness —
+`branch`, `pair` and `credit` are the three. A subclass cannot demonstrate "identical when
+off" as cheaply, and that check is what makes the switch admissible at all. Anything that
+changes behaviour when the switch is off is a rewrite, not an addition.
+
 Consequences a contributor needs to know:
 
 - **The filename is the interface.** Renaming a stage, moving it into a package, or adding a
