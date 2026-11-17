@@ -5,3 +5,4 @@ One line per day from the instrument sweep. These are **not** results: no criter
 | date | mode | seeds | acc | dw | checks |
 | --- | --- | --- | --- | --- | --- |
 | 2026-11-16 | decision | 2 | 0.562 | 1.3 | all pass |
+| 2026-11-17 | decision | 2 | 0.562 | 1.3 | all pass |
